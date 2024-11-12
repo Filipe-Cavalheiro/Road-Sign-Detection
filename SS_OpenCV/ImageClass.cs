@@ -17,6 +17,8 @@ using Emgu.CV.ML;
 using ResultsDLL;
 using Emgu.CV.CvEnum;
 using System.Runtime.ExceptionServices;
+using System.Collections.Concurrent;
+using System.Reflection.Emit;
 
 namespace SS_OpenCV
 {
@@ -36,7 +38,7 @@ namespace SS_OpenCV
 
                 MIplImage m = img.MIplImage;
                 byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
-                byte* dataPtrOrg = dataPtr;
+                
                 int width = img.Width;
                 int height = img.Height;
                 int nChan = m.NChannels; // number of channels = 3
@@ -62,20 +64,6 @@ namespace SS_OpenCV
                         //at the end of the line advance the pointer by the aligment bytes (padding)
                         dataPtr += padding;
                     }
-                }
-
-                dataPtr = dataPtrOrg;
-                //loop lines first
-                for (y = 0; y < 1; y++)
-                {
-                    for (x = 0; x < 100; x++)
-                    {
-                        dataPtr[0] = 0;
-                        dataPtr[1] = 0;
-                        dataPtr[2] = 0;
-                        dataPtr += nChan;
-                    }
-                    dataPtr += padding;
                 }
             }
         }
@@ -972,7 +960,6 @@ namespace SS_OpenCV
                 byte* dataPtrAux;
 
                 nChan = md.NChannels;
-                widthStep = md.WidthStep;
                 widthStepAux = mo.WidthStep;
                 padding = md.WidthStep - md.NChannels * md.Width;
 
@@ -1717,6 +1704,85 @@ namespace SS_OpenCV
             }
         }
 
+        private static void tagAndRemoveNoise(Image<Bgr, byte> imgDest)
+        {
+            unsafe
+            {
+                /*
+                 * get the pixel below to the right
+                *(dataPtr + (width + 1) * nChan + padding) = 255;
+                *(dataPtr + (width + 1) * nChan + padding + 1) = 255;
+                *(dataPtr + (width + 1) * nChan + padding + 2) = 255;
+                */
+
+                int width = imgDest.Width;
+                int height = imgDest.Height;
+
+                MIplImage m = imgDest.MIplImage;
+                byte* dataPtrOrg = (byte*)m.ImageData.ToPointer();     // Pointer to the image
+                int nChan = m.NChannels;                            // number of channels = 3
+                int padding = m.WidthStep - m.NChannels * m.Width;  // alinhament bytes (padding)
+
+                int x, y;
+                byte* dataPtr = dataPtrOrg;
+                int currentTag = 1;
+                int tag;
+                List<int[]> colisions = new List<int[]>(); ;
+                //TODO: worry about the borders
+                for (y = 1; y < height-1; y++)
+                {
+                    for (x = 1; x < width-1; x++)
+                    {
+                        //new object found (pixel is not zero and pixels left top and both top corners are)
+                        if (dataPtr[0] != 0 && (*(dataPtr - nChan) == 0 && *(dataPtr - (width*nChan + padding)) == 0 && *(dataPtr - ((width+1)*nChan + padding)) == 0 && *(dataPtr - ((width-1) * nChan + padding)) == 0)) {
+                            dataPtr[0] = (byte)(currentTag & 0xFF);
+                            dataPtr[1] = (byte)((currentTag >> 8) & 0xFF);
+                            dataPtr[2] = (byte)((currentTag >> 16) & 0xFF);
+                            currentTag++;
+                            dataPtr[0] = 45;
+                            dataPtr[1] = 134;
+                            dataPtr[2] = 255;
+                        }
+
+                        //continuation of object found (pixel is one and pixels left or any of the top are also one)
+                        else if (dataPtr[0] != 0 && (*(dataPtr - nChan) != 0 || *(dataPtr - (width * nChan + padding)) != 0 || *(dataPtr - ((width + 1) * nChan + padding)) != 0 || *(dataPtr - ((width - 1) * nChan + padding)) != 0))
+                        {
+                            /*tag = 0;
+                            if(*(dataPtr - nChan) != 0)
+                                tag = *(dataPtr - nChan);
+                            if (*(dataPtr - (width * nChan + padding)) != 0){
+                                if (tag != 0)
+                                    colisions.Add(new int[] { tag, (width * nChan + padding) });
+                                else
+                                    tag = *(dataPtr - (width * nChan + padding));
+                            }
+                            if (*(dataPtr - ((width + 1) * nChan + padding)) != 0){
+                                if (tag != 0)
+                                    colisions.Add(new int[] { tag, ((width + 1) * nChan + padding) });
+                                else
+                                    tag = *(dataPtr - ((width + 1) * nChan + padding));
+                            }
+                            if (*(dataPtr - ((width - 1) * nChan + padding)) != 0){
+                                if (tag != 0)
+                                    colisions.Add(new int[] { tag, ((width - 1) * nChan + padding) });
+                                else
+                                    tag = *(dataPtr - ((width - 1) * nChan + padding));
+                            }*/
+
+                            /*dataPtr[0] = (byte)(tag & 0xFF);
+                            dataPtr[1] = (byte)((tag >> 8) & 0xFF);
+                            dataPtr[2] = (byte)((tag >> 16) & 0xFF);*/
+                            dataPtr[0] = 123;
+                            dataPtr[1] = 103;
+                            dataPtr[2] = 4;
+                        }
+                        dataPtr += nChan;
+                    }
+                    dataPtr += padding;
+                }
+            }
+        }
+
         /// <summary>
         /// Sinal Reader
         /// </summary>
@@ -1757,12 +1823,14 @@ namespace SS_OpenCV
 
                 getRedSignalOutline(imgDest, imgHsv);
 
+                tagAndRemoveNoise(imgDest);
+                /*
                 int[] result = getRedSignalOutlineCoords(imgDest);
 
                 sinal.sinalRect = new Rectangle(result[1], result[0], result[3] - result[1], result[2] - result[0]);
 
                 imgDest.Draw(sinal.sinalRect, new Bgr(Color.Green));
-
+                */
                 // add sinal to results
                 sinalResult.results.Add(sinal);
             }
