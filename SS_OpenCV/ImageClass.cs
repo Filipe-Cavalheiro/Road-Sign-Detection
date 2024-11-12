@@ -16,6 +16,7 @@ using System.Runtime.InteropServices.ComTypes;
 using Emgu.CV.ML;
 using ResultsDLL;
 using Emgu.CV.CvEnum;
+using System.Runtime.ExceptionServices;
 
 namespace SS_OpenCV
 {
@@ -63,21 +64,19 @@ namespace SS_OpenCV
                     }
                 }
 
-                dataPtr = dataPtrOrg + height * (width * nChan);
-                for (y = height; y > 0; y--)
+                dataPtr = dataPtrOrg;
+                //loop lines first
+                for (y = 0; y < 1; y++)
                 {
-                    for (x = 0; x < width; x++)
+                    for (x = 0; x < 100; x++)
                     {
-                        dataPtr[0] = 255;
-                        dataPtr[1] = 255;
-                        dataPtr[2] = 255;
-                        dataPtr -= nChan;
+                        dataPtr[0] = 0;
+                        dataPtr[1] = 0;
+                        dataPtr[2] = 0;
+                        dataPtr += nChan;
                     }
-                    dataPtr -= padding;
+                    dataPtr += padding;
                 }
-                dataPtr[0] = 255;
-                dataPtr[1] = 255;
-                dataPtr[2] = 255;
             }
         }
 
@@ -1638,82 +1637,80 @@ namespace SS_OpenCV
                 int height = imgDest.Height;
 
                 MIplImage m = imgDest.MIplImage;
-                byte* dataPtr = (byte*)m.ImageData.ToPointer();     // Pointer to the image
+                byte* dataPtrOrg = (byte*)m.ImageData.ToPointer();     // Pointer to the image
                 int nChan = m.NChannels;                            // number of channels = 3
                 int padding = m.WidthStep - m.NChannels * m.Width;  // alinhament bytes (padding)
 
                 int x, y;
                 int top = -1, left = -1, bottom = -1, right = -1;
-                byte* dataPtrOrg = dataPtr;
-                if (nChan == 3) 
-                {
-                    //loop lines first
-                    for (y = 0; y < height; y++)
-                    {
-                        for (x = 0; x < width; x++)
-                        {
-                            if (dataPtr[2] != 0)
-                            {
-                                top = y;
-                                x = width; //force exit of for loops
-                                y = height;
-                            }
-                            dataPtr += nChan;
-                        }
-                        dataPtr += padding;
-                    }
+                byte* dataPtr = dataPtrOrg;
 
-                    // Loop through columns first
+                //loop lines first
+                for (y = 0; y < height; y++)
+                {
                     for (x = 0; x < width; x++)
                     {
-                        dataPtr = dataPtrOrg + x * nChan;
-                        for (y = 0; y < height; y++)
+                        if (dataPtr[0] != 0)
                         {
-                            if (dataPtr[2] != 0)
-                            {
-                                left = x;
-                                x = width; //force exit of for loops
-                                y = height;
-                            }
-
-                            dataPtr += width * nChan + padding;
+                            top = y;
+                            x = width; //force exit of for loops
+                            y = height;
                         }
+                        dataPtr += nChan;
                     }
+                    dataPtr += padding;
+                }
 
-                    dataPtr = dataPtrOrg + height * (width * nChan);
-                    for (y = height; y > 0; y--)
+                // Loop through columns first
+                for (x = 0; x < width; x++)
+                {
+                    dataPtr = dataPtrOrg + x * nChan;
+                    for (y = 0; y < height; y++)
                     {
-                        for (x = 0; x < width; x++)
+                        if (dataPtr[0] != 0)
                         {
-                            if (dataPtr[2] != 0)
-                            {
-                                bottom = y;
-                                x = width; //force exit of for loops
-                                y = 0;
-                            }
-                            dataPtr -= nChan;
+                            left = x;
+                            x = width; //force exit of for loops
+                            y = height;
                         }
-                        dataPtr -= padding;
-                    }
-                    if (dataPtr[0] != 0 && bottom == -1){
-                        bottom = y;
-                    }
 
-                    // Loop through columns first starting at right
-                    for (x = width; x > 0; x--)
+                        dataPtr += width * nChan + padding;
+                    }
+                }
+
+                dataPtr = dataPtrOrg + height * (width * nChan);
+                for (y = height; y > 0; y--)
+                {
+                    for (x = 0; x < width; x++)
                     {
-                        dataPtr = dataPtrOrg + x * nChan;
-                        for (y = 0; y < height; y++)
+                        if (dataPtr[0] != 0)
                         {
-                            if (dataPtr[2] != 0)
-                            {
-                                right = x;
-                                x = 0; //force exit of for loops
-                                y = height;
-                            }
-
-                            dataPtr += width * nChan + padding;
+                            bottom = y;
+                            x = width; //force exit of for loops
+                            y = 0;
                         }
+                        dataPtr -= nChan;
+                    }
+                    dataPtr -= padding;
+                }
+                if (dataPtr[0] != 0 && bottom == -1){
+                    bottom = y;
+                }
+
+                // Loop through columns first starting at right
+                for (x = width; x > 0; x--)
+                {
+                    dataPtr = dataPtrOrg + x * nChan;
+                    for (y = 0; y < height; y++)
+                    {
+                        if (dataPtr[0] != 0)
+                        {
+                            right = x;
+                            x = 0; //force exit of for loops
+                            y = height;
+                        }
+
+                        dataPtr += width * nChan + padding;
                     }
                 }
                 return new int[] { top, left, bottom, right };
@@ -1760,11 +1757,9 @@ namespace SS_OpenCV
 
                 getRedSignalOutline(imgDest, imgHsv);
 
-                ConvertToBW_Otsu(imgDest);
-
                 int[] result = getRedSignalOutlineCoords(imgDest);
 
-                sinal.sinalRect = new Rectangle(result[0], result[1], result[3] - result[1], result[2] - result[0]);
+                sinal.sinalRect = new Rectangle(result[1], result[0], result[3] - result[1], result[2] - result[0]);
 
                 imgDest.Draw(sinal.sinalRect, new Bgr(Color.Green));
 
