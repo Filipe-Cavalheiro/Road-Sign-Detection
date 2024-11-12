@@ -1652,7 +1652,7 @@ namespace SS_OpenCV
                     {
                         for (x = 0; x < width; x++)
                         {
-                            if (dataPtr[0] != 0)
+                            if (dataPtr[2] != 0)
                             {
                                 top = y;
                                 x = width; //force exit of for loops
@@ -1669,7 +1669,7 @@ namespace SS_OpenCV
                         dataPtr = dataPtrOrg + x * nChan;
                         for (y = 0; y < height; y++)
                         {
-                            if (dataPtr[0] != 0)
+                            if (dataPtr[2] != 0)
                             {
                                 left = x;
                                 x = width; //force exit of for loops
@@ -1685,7 +1685,7 @@ namespace SS_OpenCV
                     {
                         for (x = 0; x < width; x++)
                         {
-                            if (dataPtr[0] != 0)
+                            if (dataPtr[2] != 0)
                             {
                                 bottom = y;
                                 x = width; //force exit of for loops
@@ -1705,7 +1705,7 @@ namespace SS_OpenCV
                         dataPtr = dataPtrOrg + x * nChan;
                         for (y = 0; y < height; y++)
                         {
-                            if (dataPtr[0] != 0)
+                            if (dataPtr[2] != 0)
                             {
                                 right = x;
                                 x = 0; //force exit of for loops
@@ -1759,6 +1759,8 @@ namespace SS_OpenCV
                 CvInvoke.CvtColor(imgOrig, imgHsv, ColorConversion.Bgr2Hsv);
 
                 getRedSignalOutline(imgDest, imgHsv);
+
+                ConvertToBW_Otsu(imgDest);
 
                 int[] result = getRedSignalOutlineCoords(imgDest);
 
