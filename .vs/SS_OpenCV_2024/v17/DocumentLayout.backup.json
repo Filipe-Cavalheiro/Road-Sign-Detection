@@ -7,6 +7,10 @@
       "RelativeMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|solutionrelative:ss_opencv\\imageclass.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
+      "AbsoluteMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\ss_opencv\\histograma.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|solutionrelative:ss_opencv\\histograma.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\ss_opencv\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|solutionrelative:ss_opencv\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -17,10 +21,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\ss_opencv\\mainform.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|solutionrelative:ss_opencv\\mainform.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\ss_opencv\\histograma.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
-      "RelativeMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|solutionrelative:ss_opencv\\histograma.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
     }
   ],
   "DocumentGroupContainers": [
@@ -34,7 +34,7 @@
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 2,
               "Title": "MainForm.cs",
               "DocumentMoniker": "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\SS_OpenCV\\MainForm.cs",
               "RelativeDocumentMoniker": "SS_OpenCV\\MainForm.cs",
@@ -53,7 +53,7 @@
               "RelativeDocumentMoniker": "SS_OpenCV\\ImageClass.cs",
               "ToolTip": "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\SS_OpenCV\\ImageClass.cs",
               "RelativeToolTip": "SS_OpenCV\\ImageClass.cs",
-              "ViewState": "AgIAAMUGAAAAAAAAAAAAwM4GAAAtAAAAAAAAAA==",
+              "ViewState": "AgIAAAAHAAAAAAAAAAAAAAgHAAAnAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2024-09-16T17:10:13.373Z",
               "IsPinned": true,
@@ -61,18 +61,19 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 1,
               "Title": "Histograma.cs [Design]",
               "DocumentMoniker": "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\SS_OpenCV\\Histograma.cs",
               "RelativeDocumentMoniker": "SS_OpenCV\\Histograma.cs",
-              "ToolTip": "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\SS OpenCV Base 2024 09 12-20240912\\SS_OpenCV_Base\\SS_OpenCV\\Histograma.cs [Design]",
-              "RelativeToolTip": "..\\SS OpenCV Base 2024 09 12-20240912\\SS_OpenCV_Base\\SS_OpenCV\\Histograma.cs [Design]",
+              "ToolTip": "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\SS_OpenCV\\Histograma.cs [Design]",
+              "RelativeToolTip": "SS_OpenCV\\Histograma.cs [Design]",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-10-29T15:21:02.018Z"
+              "WhenOpened": "2024-10-29T15:21:02.018Z",
+              "EditorCaption": " [Design]"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 4,
               "Title": "MainForm.Designer.cs",
               "DocumentMoniker": "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\SS_OpenCV\\MainForm.Designer.cs",
               "RelativeDocumentMoniker": "SS_OpenCV\\MainForm.Designer.cs",
@@ -84,7 +85,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
               "Title": "MainForm.cs [Design]",
               "DocumentMoniker": "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\SS_OpenCV\\MainForm.cs",
               "RelativeDocumentMoniker": "SS_OpenCV\\MainForm.cs",
