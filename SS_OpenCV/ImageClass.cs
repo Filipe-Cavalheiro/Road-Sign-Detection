@@ -158,6 +158,76 @@ namespace SS_OpenCV
         }
 
         /// <summary>
+        /// Convert to blue
+        /// Direct access to memory - faster method
+        /// </summary>
+        /// <param name="img">image</param>
+        public static void BlueChannel(Image<Bgr, byte> img)
+        {
+            unsafe
+            {
+                MIplImage m = img.MIplImage;
+                byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
+
+                int x, y, height, width, nChan, padding;
+
+                height = img.Height;
+                width = img.Width;
+
+                nChan = m.NChannels; // number of channels - 3
+                padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
+
+                if (nChan != 3) return;
+
+                for (y = 0; y < height; ++y)
+                {
+                    for (x = 0; x < width; ++x)
+                    {
+                        dataPtr[2] = dataPtr[1] = dataPtr[0];
+
+                        dataPtr += nChan;
+                    }
+                    dataPtr += padding;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Convert to green
+        /// Direct access to memory - faster method
+        /// </summary>
+        /// <param name="img">image</param>
+        public static void GreenChannel(Image<Bgr, byte> img)
+        {
+            unsafe
+            {
+                MIplImage m = img.MIplImage;
+                byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
+
+                int x, y, height, width, nChan, padding;
+
+                height = img.Height;
+                width = img.Width;
+
+                nChan = m.NChannels; // number of channels - 3
+                padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
+
+                if (nChan != 3) return;
+
+                for (y = 0; y < height; ++y)
+                {
+                    for (x = 0; x < width; ++x)
+                    {
+                        dataPtr[2] = dataPtr[0] = dataPtr[1];
+
+                        dataPtr += nChan;
+                    }
+                    dataPtr += padding;
+                }
+            }
+        }
+
+        /// <summary>
         /// Convert to gray
         /// Direct access to memory - faster method
         /// </summary>
@@ -187,21 +257,21 @@ namespace SS_OpenCV
                             blue = (int)Math.Round(contrast * dataPtr[0] + bright);
                             if (blue > 255)
                                 blue = 255;
-                            if (blue < 0)
+                            else if (blue < 0)
                                 blue = 0;
                             dataPtr[0] = (byte)blue;
 
                             green = (int)Math.Round(contrast * dataPtr[1] + bright);
                             if (green > 255)
                                 green = 255;
-                            if (green < 0)
+                            else if (green < 0)
                                 green = 0;
                             dataPtr[1] = (byte)green;
 
                             red = (int)Math.Round(contrast * dataPtr[2] + bright);
                             if (red > 255)
                                 red = 255;
-                            if (red < 0)
+                            else if (red < 0)
                                 red = 0;
                             dataPtr[2] = (byte)red;
 
@@ -228,45 +298,57 @@ namespace SS_OpenCV
                 // direct access to the image memory(sequencial)
                 // direcion top left -> bottom right
 
-                MIplImage m = img.MIplImage;
-                byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
-
-                MIplImage Originm = imgCopy.MIplImage;
-                byte* OrigindataPtr = (byte*)Originm.ImageData.ToPointer(); // Pointer to the image
-
-                int width = img.Width;
-                int height = img.Height;
-                int nChan = m.NChannels; // number of channels = 3
-                int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
-                byte* OrigindataPtr_axu;
-                int x, y;
-                int xOrigin, yOrigin;
-                if (nChan == 3) // image in RGB
+                unsafe
                 {
+                    int x, y, height, width, nChan, padding, widthStep, blue, green, red, ox, oy;
+                    float cosa, sina;
+                    double cx, cy;
+
+                    cosa = (float)Math.Cos(radAngle);
+                    sina = (float)Math.Sin(radAngle);
+
+                    height = img.Height;
+                    width = img.Width;
+
+                    cx = width / 2.0;
+                    cy = height / 2.0;
+
+                    MIplImage mo = imgCopy.MIplImage;
+                    MIplImage md = img.MIplImage;
+
+                    byte* dataPtrd = (byte*)md.ImageData.ToPointer();
+                    byte* dataPtro = (byte*)mo.ImageData.ToPointer();
+                    byte* dataPtrAux;
+
+                    nChan = md.NChannels;
+                    widthStep = md.WidthStep;
+                    padding = md.WidthStep - md.NChannels * md.Width;
+
                     for (y = 0; y < height; y++)
                     {
                         for (x = 0; x < width; x++)
                         {
-                            xOrigin = (int)Math.Round((x - (width / 2.0)) * Math.Cos(radAngle) - ((height / 2.0) - y) * Math.Sin(radAngle) + (width / 2.0));
-                            yOrigin = (int)Math.Round((height / 2.0) - (x - (width / 2.0)) * Math.Sin(radAngle) - ((height / 2.0) - y) * Math.Cos(radAngle));
-                            if ((xOrigin < 0 || yOrigin < 0) || (xOrigin >= width || yOrigin >= height)) {
-                                dataPtr[0] = 0;
-                                dataPtr[1] = 0;
-                                dataPtr[2] = 0;
-                                dataPtr += nChan;
-                                continue;
+                            ox = (int)Math.Round((x - cx) * cosa - (cy - y) * sina + cx);
+                            oy = (int)Math.Round(cy - (x - cx) * sina - (cy - y) * cosa);
+
+                            if ((ox >= 0 && ox < width) && (oy >= 0 && oy < height))
+                            {
+                                dataPtrAux = dataPtro + oy * widthStep + ox * nChan;
+
+                                blue = (byte)(dataPtrAux)[0];
+                                green = (byte)(dataPtrAux)[1];
+                                red = (byte)(dataPtrAux)[2];
+
                             }
+                            else { blue = green = red = 0; }
 
-                            OrigindataPtr_axu = OrigindataPtr + (xOrigin * 3 + yOrigin * (width * 3 + padding));
-                            dataPtr[0] = OrigindataPtr_axu[0];
-                            dataPtr[1] = OrigindataPtr_axu[1];
-                            dataPtr[2] = OrigindataPtr_axu[2];
-                            // advance the pointer to the next pixel
-                            dataPtr += nChan;
+                            dataPtrd[0] = (byte)blue;
+                            dataPtrd[1] = (byte)green;
+                            dataPtrd[2] = (byte)red;
+
+                            dataPtrd += nChan;
                         }
-
-                        //at the end of the line advance the pointer by the aligment bytes (padding)
-                        dataPtr += padding;
+                        dataPtrd += padding;
                     }
                 }
             }
@@ -939,7 +1021,7 @@ namespace SS_OpenCV
         {
             unsafe
             {
-                int x, y, i, j, height, width, nChan, padding, widthStep, widthStepAux, filterSize, filterPadding;
+                int x, y, i, j, height, width, nChan, padding, widthStepAux, filterSize, filterPadding;
                 float sumGreen, sumBlue, sumRed;
                 float tmp;
 
@@ -1424,6 +1506,92 @@ namespace SS_OpenCV
                     dataPtrd += padding;
                 }
                 return hist_arr;
+            }
+        }
+
+        public static int[,] Histogram_RGB(Emgu.CV.Image<Bgr, byte> img)
+        {
+            unsafe
+            {
+                int[,] histogram = new int[3, 256];
+                Array.Clear(histogram, 0, histogram.Length);
+
+                MIplImage m = img.MIplImage;
+                byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
+
+                int width = img.Width;
+                int height = img.Height;
+                int nChan = m.NChannels; // number of channels - 3
+                int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
+                int x, y;
+
+                if (nChan == 3) // image in RGB
+                {
+                    for (y = 0; y < height; ++y)
+                    {
+                        for (x = 0; x < width; ++x)
+                        {
+
+                            histogram[0, dataPtr[0]] += 1;
+                            histogram[1, dataPtr[1]] += 1;
+                            histogram[2, dataPtr[2]] += 1;
+
+                            // advance the pointer to the next pixel
+                            dataPtr += nChan;
+                        }
+
+                        //at the end of the line advance the pointer by the aligment bytes (padding)
+                        dataPtr += padding;
+                    }
+                }
+
+                return histogram;
+            }
+        }
+
+        public static int[,] Histogram_All(Emgu.CV.Image<Bgr, byte> img)
+        {
+            unsafe
+            {
+                int[,] histogram = new int[4, 256];
+                Array.Clear(histogram, 0, histogram.Length);
+
+                MIplImage m = img.MIplImage;
+                byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
+                byte gray, blue, green, red;
+
+                int width = img.Width;
+                int height = img.Height;
+                int nChan = m.NChannels; // number of channels - 3
+                int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
+                int x, y;
+
+                if (nChan == 3) // image in RGB
+                {
+                    for (y = 0; y < height; ++y)
+                    {
+                        for (x = 0; x < width; ++x)
+                        {
+                            blue = dataPtr[0];
+                            green = dataPtr[1];
+                            red = dataPtr[2];
+                            gray = (byte)Math.Round((blue + green + red) / 3.0);
+
+                            histogram[0, gray] += 1;
+
+                            histogram[1, blue] += 1;
+                            histogram[2, green] += 1;
+                            histogram[3, red] += 1;
+
+                            // advance the pointer to the next pixel
+                            dataPtr += nChan;
+                        }
+
+                        //at the end of the line advance the pointer by the aligment bytes (padding)
+                        dataPtr += padding;
+                    }
+                }
+                return histogram;
             }
         }
 

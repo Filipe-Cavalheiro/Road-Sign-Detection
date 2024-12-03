@@ -213,12 +213,47 @@ namespace SS_OpenCV
             Cursor = Cursors.Default; // normal cursor 
         }
 
+        private void greenChannelToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (img == null) // verify if the image is already opened
+                return;
+            Cursor = Cursors.WaitCursor; // clock cursor
+
+            //copy Undo Image
+            imgUndo = img.Copy();
+
+            ImageClass.GreenChannel(img);
+
+            ImageViewer.Image = img;
+            ImageViewer.Refresh(); // refresh image on the screen
+
+            Cursor = Cursors.Default; // normal cursor 
+        }
+
         /// <summary>
         /// Call image BrightChannel
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void brightChannelToolStripMenuItem_Click(object sender, EventArgs e)
+        private void blueChannelToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (img == null) // verify if the image is already opened
+                return;
+
+            //copy Undo Image
+            imgUndo = img.Copy();
+
+            Cursor = Cursors.WaitCursor; // clock cursor
+            ImageClass.BlueChannel(img);
+
+            ImageViewer.Image = img;
+            ImageViewer.Refresh(); // refresh image on the screen
+
+            Cursor = Cursors.Default; // normal cursor 
+        }
+
+
+        private void brightContrastToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (img == null) // verify if the image is already opened
                 return;
@@ -464,7 +499,7 @@ namespace SS_OpenCV
             Cursor = Cursors.Default; // normal cursor 
         }
 
-        private void histogramaToolStripMenuItem_Click_1(object sender, EventArgs e)
+        private void greyToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (img == null) // verify if the image is already opened
                 return;
