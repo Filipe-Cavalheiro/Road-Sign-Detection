@@ -14,12 +14,18 @@ namespace SS_OpenCV
     {
         Image<Bgr, Byte> img = null; // working image
         Image<Bgr, Byte> imgUndo = null; // undo backup image - UNDO
+        Image<Bgr, Byte> imgSen = null; // working image
         string title_bak = "";
 
         public MainForm()
         {
             InitializeComponent();
             title_bak = Text;
+
+            serialPort1.PortName = "COM3";
+            serialPort1.BaudRate = 9600;
+
+            serialPort1.DataReceived += serialPort1_DataReceived;
         }
 
         /// <summary>
@@ -506,11 +512,42 @@ namespace SS_OpenCV
 
             int[] hist_arr = new int[256];
             Cursor = Cursors.WaitCursor; // clock cursor
+
             hist_arr = ImageClass.Histogram_Gray(img);
 
+            Cursor = Cursors.Default; // normal cursor 
             Histograma his = new Histograma(hist_arr);
             his.ShowDialog();
+        }
+
+        private void rGBToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (img == null) // verify if the image is already opened
+                return;
+
+            int[,] hist_arr = new int[3, 256];
+            Cursor = Cursors.WaitCursor; // clock cursor
+
+            hist_arr = ImageClass.Histogram_RGB(img);
+
             Cursor = Cursors.Default; // normal cursor 
+            Histograma his = new Histograma(hist_arr, 3);
+            his.ShowDialog();
+        }
+
+        private void allToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (img == null) // verify if the image is already opened
+                return;
+
+            int[,] hist_arr = new int[4, 256];
+            Cursor = Cursors.WaitCursor; // clock cursor
+
+            hist_arr = ImageClass.Histogram_All(img);
+
+            Cursor = Cursors.Default; // normal cursor 
+            Histograma his = new Histograma(hist_arr, 4);
+            his.ShowDialog();
         }
 
         private void bWSimpleToolStripMenuItem_Click(object sender, EventArgs e)
@@ -560,6 +597,42 @@ namespace SS_OpenCV
             ImageViewer.Refresh(); // refresh image on the screen
 
             Cursor = Cursors.Default; // normal cursor 
+        }
+
+        private void toggleSensorsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!serialPort1.IsOpen) {
+                serialPort1.Open();
+                Console.WriteLine($"Connected to {serialPort1.PortName}");
+            } else {
+                serialPort1.Close();
+                Console.WriteLine($"Disconnected from {serialPort1.PortName}");
+            }
+        }
+
+        private void serialPort1_DataReceived(object sender, System.IO.Ports.SerialDataReceivedEventArgs e)
+        {
+            if (img == null) // verify if the image is already opened
+                return;
+
+            int L = 0;
+            double T = 0;
+            String s;
+
+            imgSen = img.Copy();
+
+            s = serialPort1.ReadLine();
+
+            String[] ls = s.Split(';');
+
+            Console.WriteLine(ls[0]);
+            T = Convert.ToDouble(ls[0]);
+
+            L = 285 - (int)Math.Round(Convert.ToDouble(ls[1]));
+            Console.WriteLine(ls[1]);
+
+            ImageClass.BrightContrast(imgSen, L, T);
+            ImageViewer.Image = imgSen;
         }
     }
 }
