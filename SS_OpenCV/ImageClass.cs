@@ -1872,7 +1872,7 @@ namespace SS_OpenCV
             }
         }
 
-        private static void tagAndRemoveNoise(Image<Bgr, byte> imgDest)
+        private static void joinedComponents(Image<Bgr, byte> imgDest)
         {
             unsafe
             {
@@ -1881,12 +1881,13 @@ namespace SS_OpenCV
 
                 MIplImage m = imgDest.MIplImage;
                 byte* dataPtrOrg = (byte*)m.ImageData.ToPointer();     // Pointer to the image
-                int nChan = m.NChannels;                            // number of channels = 3
+                int nChan = m.NChannels;
+                int witdhStep = m.WidthStep;// number of channels = 3
                 int padding = m.WidthStep - m.NChannels * m.Width;  // alinhament bytes (padding)
 
                 int x, y;
                 byte* dataPtr = dataPtrOrg;
-                int currentTag = 1;
+                int currentTag = 100;
                 int tag;
                 byte* pixel_left;
                 byte* pixel_top;
@@ -1894,17 +1895,20 @@ namespace SS_OpenCV
                 byte* pixel_topL;
                 List<(int MinValue, int MaxValue)> colisions = new List<(int, int)>();
                 //TODO: worry about the borders
-                for (y = 1; y < height-1; y++){
-                    for (x = 1; x < width-1; x++){
-                        if (dataPtr[0] == 0 && dataPtr[1] == 0 && dataPtr[2] == 0){
+                for (y = 1; y < height - 1; y++)
+                {
+                    for (x = 1; x < width - 1; x++)
+                    {
+                        if (dataPtr[0] == 0 && dataPtr[1] == 0 && dataPtr[2] == 0)
+                        {
                             dataPtr += nChan;
                             continue;
                         }
 
                         pixel_left = dataPtr - nChan;
-                        pixel_top = dataPtr - (width * nChan + padding);
-                        pixel_topL = dataPtr - ((width + 1) * nChan + padding);
-                        pixel_topR = dataPtr - ((width - 1) * nChan + padding);
+                        pixel_top = dataPtr - witdhStep;
+                        pixel_topL = dataPtr - witdhStep - nChan;
+                        pixel_topR = dataPtr - witdhStep + nChan;
 
                         //new object found (pixel is one  and pixels left and all top is zero)
                         if ((pixel_left[0] == 0 && pixel_left[1] == 0 && pixel_left[2] == 0) &&
@@ -1915,7 +1919,7 @@ namespace SS_OpenCV
                             dataPtr[0] = (byte)((currentTag >> 16) & 0xFF);
                             dataPtr[1] = (byte)((currentTag >> 8) & 0xFF);
                             dataPtr[2] = (byte)(currentTag & 0xFF);
-                            currentTag += 10;
+                            currentTag += 100;
 
                             dataPtr += nChan;
                             continue;
@@ -1931,35 +1935,55 @@ namespace SS_OpenCV
                         {
                             if (tag == 0)
                                 tag = pixel_top[0] << 16 | pixel_top[1] << 8 | pixel_top[2];
-                            else{
+                            else if (tag != (pixel_top[0] << 16 | pixel_top[1] << 8 | pixel_top[2]))
+                            {
                                 colisions.Add((
                                     Math.Min(tag, (pixel_top[0] << 16) | (pixel_top[1] << 8) | pixel_top[2]),
                                     Math.Max(tag, (pixel_top[0] << 16) | (pixel_top[1] << 8) | pixel_top[2])
                                 ));
+                                tag = Math.Min(tag, (pixel_top[0] << 16) | (pixel_top[1] << 8) | pixel_top[2]);
+                                dataPtr[0] = (byte)((tag >> 16) & 0xFF);
+                                dataPtr[1] = (byte)((tag >> 8) & 0xFF);
+                                dataPtr[2] = (byte)(tag & 0xFF);
+                                dataPtr += nChan;
+                                continue;
                             }
                         }
                         if (pixel_topL[0] != 0 || pixel_topL[1] != 0 || pixel_topL[2] != 0)
                         {
                             if (tag == 0)
                                 tag = pixel_topL[0] << 16 | pixel_topL[1] << 8 | pixel_topL[2];
-                            else{
+                            else if (tag != (pixel_topL[0] << 16 | pixel_topL[1] << 8 | pixel_topL[2]))
+                            {
                                 colisions.Add((
                                     Math.Min(tag, (pixel_topL[0] << 16) | (pixel_topL[1] << 8) | pixel_topL[2]),
                                     Math.Max(tag, (pixel_topL[0] << 16) | (pixel_topL[1] << 8) | pixel_topL[2])
                                 ));
+                                tag = Math.Min(tag, (pixel_topL[0] << 16) | (pixel_topL[1] << 8) | pixel_topL[2]);
+                                dataPtr[0] = (byte)((tag >> 16) & 0xFF);
+                                dataPtr[1] = (byte)((tag >> 8) & 0xFF);
+                                dataPtr[2] = (byte)(tag & 0xFF);
+                                dataPtr += nChan;
+                                continue;
                             }
                         }
                         if (pixel_topR[0] != 0 || pixel_topR[1] != 0 || pixel_topR[2] != 0)
                         {
                             if (tag == 0)
                                 tag = pixel_topR[0] << 16 | pixel_topR[1] << 8 | pixel_topR[2];
-                            else {
+                            else if (tag != (pixel_topR[0] << 16 | pixel_topR[1] << 8 | pixel_topR[2]))
+                            {
                                 colisions.Add((
                                         Math.Min(tag, (pixel_topR[0] << 16) | (pixel_topR[1] << 8) | pixel_topR[2]),
                                         Math.Max(tag, (pixel_topR[0] << 16) | (pixel_topR[1] << 8) | pixel_topR[2])
-                                    ));
+                                ));
+                                tag = Math.Min(tag, (pixel_topR[0] << 16) | (pixel_topR[1] << 8) | pixel_topR[2]);
+                                dataPtr[0] = (byte)((tag >> 16) & 0xFF);
+                                dataPtr[1] = (byte)((tag >> 8) & 0xFF);
+                                dataPtr[2] = (byte)(tag & 0xFF);
+                                dataPtr += nChan;
+                                continue;
                             }
-                                
                         }
                         dataPtr[0] = (byte)((tag >> 16) & 0xFF);
                         dataPtr[1] = (byte)((tag >> 8) & 0xFF);
@@ -1968,6 +1992,9 @@ namespace SS_OpenCV
                     }
                     dataPtr += padding;
                 }
+
+                /*TODO: fix shitty fix for repetetition of collisions that should never happen*/
+                //colisions = colisions.Distinct().ToList();
 
                 for (int i = 0; i < colisions.Count; i++)
                 {
@@ -1982,8 +2009,10 @@ namespace SS_OpenCV
 
                 dataPtr = dataPtrOrg;
                 //TODO: worry about the borders
-                for (y = 1; y < height - 1; y++){
-                    for (x = 1; x < width - 1; x++){
+                for (y = 1; y < height - 1; y++)
+                {
+                    for (x = 1; x < width - 1; x++)
+                    {
                         if (dataPtr[0] == 0 && dataPtr[1] == 0 && dataPtr[2] == 0)
                         {
                             dataPtr += nChan;
@@ -2048,7 +2077,8 @@ namespace SS_OpenCV
 
                 getRedSignalOutline(imgDest, imgHsv);
 
-                tagAndRemoveNoise(imgDest);
+                joinedComponents(imgDest);
+
                 /*
                 int[] result = getRedSignalOutlineCoords(imgDest);
 
