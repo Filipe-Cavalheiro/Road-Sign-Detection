@@ -1,29 +1,29 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "C:\\Users\\Diogo\\Desktop\\Road-Sign-Detection\\",
+  "WorkspaceRootPath": "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|C:\\Users\\Diogo\\Desktop\\Road-Sign-Detection\\ss_opencv\\histograma.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|solutionrelative:ss_opencv\\histograma.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|C:\\Users\\Diogo\\Desktop\\Road-Sign-Detection\\ss_opencv\\imageclass.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|c:\\users\\caval\\documents\\universidade\\7_semestre\\ss\\road-sign-detection\\ss_opencv\\imageclass.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|solutionrelative:ss_opencv\\imageclass.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|c:\\users\\diogo\\desktop\\road-sign-detection\\ss_opencv\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\ss_opencv\\histograma.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|solutionrelative:ss_opencv\\histograma.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\ss_opencv\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|solutionrelative:ss_opencv\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|C:\\Users\\Diogo\\Desktop\\Road-Sign-Detection\\ss_opencv\\histograma.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\ss_opencv\\histograma.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|solutionrelative:ss_opencv\\histograma.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|C:\\Users\\Diogo\\Desktop\\Road-Sign-Detection\\ss_opencv\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "AbsoluteMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\ss_opencv\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
       "RelativeMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|solutionrelative:ss_opencv\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|C:\\Users\\Diogo\\Desktop\\Road-Sign-Detection\\ss_opencv\\histograma.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "AbsoluteMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\ss_opencv\\histograma.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
       "RelativeMoniker": "D:0:0:{CD855189-4EC3-4D94-8305-CE02B0E98ED1}|SS_OpenCV\\SS_OpenCV.csproj|solutionrelative:ss_opencv\\histograma.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
     }
   ],
@@ -34,31 +34,30 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 1,
           "Children": [
             {
               "$type": "Document",
               "DocumentIndex": 2,
               "Title": "MainForm.cs",
-              "DocumentMoniker": "C:\\Users\\Diogo\\Desktop\\Road-Sign-Detection\\SS_OpenCV\\MainForm.cs",
+              "DocumentMoniker": "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\SS_OpenCV\\MainForm.cs",
               "RelativeDocumentMoniker": "SS_OpenCV\\MainForm.cs",
-              "ToolTip": "C:\\Users\\Diogo\\Desktop\\Road-Sign-Detection\\SS_OpenCV\\MainForm.cs",
+              "ToolTip": "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\SS_OpenCV\\MainForm.cs",
               "RelativeToolTip": "SS_OpenCV\\MainForm.cs",
               "ViewState": "AgIAABQCAAAAAAAAAAAIwCECAAAMAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2024-09-16T08:59:07.49Z",
-              "IsPinned": true,
-              "EditorCaption": ""
+              "IsPinned": true
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 0,
               "Title": "ImageClass.cs",
-              "DocumentMoniker": "C:\\Users\\Diogo\\Desktop\\Road-Sign-Detection\\SS_OpenCV\\ImageClass.cs",
+              "DocumentMoniker": "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\SS_OpenCV\\ImageClass.cs",
               "RelativeDocumentMoniker": "SS_OpenCV\\ImageClass.cs",
-              "ToolTip": "C:\\Users\\Diogo\\Desktop\\Road-Sign-Detection\\SS_OpenCV\\ImageClass.cs",
+              "ToolTip": "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\SS_OpenCV\\ImageClass.cs",
               "RelativeToolTip": "SS_OpenCV\\ImageClass.cs",
-              "ViewState": "AgIAAA8GAAAAAAAAAAAUwMYFAAA6AAAAAAAAAA==",
+              "ViewState": "AgIAAOAGAAAAAAAAAAAcwK8HAAARAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2024-09-16T17:10:13.373Z",
               "IsPinned": true,
@@ -66,53 +65,49 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "Histograma.cs",
-              "DocumentMoniker": "C:\\Users\\Diogo\\Desktop\\Road-Sign-Detection\\SS_OpenCV\\Histograma.cs",
+              "DocumentMoniker": "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\SS_OpenCV\\Histograma.cs",
               "RelativeDocumentMoniker": "SS_OpenCV\\Histograma.cs",
-              "ToolTip": "C:\\Users\\Diogo\\Desktop\\Road-Sign-Detection\\SS_OpenCV\\Histograma.cs",
+              "ToolTip": "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\SS_OpenCV\\Histograma.cs",
               "RelativeToolTip": "SS_OpenCV\\Histograma.cs",
-              "ViewState": "AgIAAC4AAAAAAAAAAAAEwDsAAAAMAAAAAAAAAA==",
+              "ViewState": "AgIAAAMAAAAAAAAAAAArwDgAAAA1AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-12-03T15:28:18.459Z",
-              "EditorCaption": ""
+              "WhenOpened": "2024-12-03T15:28:18.459Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 3,
               "Title": "Histograma.Designer.cs",
-              "DocumentMoniker": "C:\\Users\\Diogo\\Desktop\\Road-Sign-Detection\\SS_OpenCV\\Histograma.Designer.cs",
+              "DocumentMoniker": "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\SS_OpenCV\\Histograma.Designer.cs",
               "RelativeDocumentMoniker": "SS_OpenCV\\Histograma.Designer.cs",
-              "ToolTip": "C:\\Users\\Diogo\\Desktop\\Road-Sign-Detection\\SS_OpenCV\\Histograma.Designer.cs",
+              "ToolTip": "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\SS_OpenCV\\Histograma.Designer.cs",
               "RelativeToolTip": "SS_OpenCV\\Histograma.Designer.cs",
               "ViewState": "AgIAAAIAAAAAAAAAAAAxwAcAAAAIAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-12-03T15:13:26.117Z",
-              "EditorCaption": ""
+              "WhenOpened": "2024-12-03T15:13:26.117Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 5,
               "Title": "Histograma.cs [Design]",
-              "DocumentMoniker": "C:\\Users\\Diogo\\Desktop\\Road-Sign-Detection\\SS_OpenCV\\Histograma.cs",
+              "DocumentMoniker": "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\SS_OpenCV\\Histograma.cs",
               "RelativeDocumentMoniker": "SS_OpenCV\\Histograma.cs",
               "ToolTip": "C:\\Users\\Diogo\\Desktop\\Road-Sign-Detection\\SS_OpenCV\\Histograma.cs [Design]",
-              "RelativeToolTip": "SS_OpenCV\\Histograma.cs [Design]",
+              "RelativeToolTip": "..\\..\\..\\..\\..\\..\\Diogo\\Desktop\\Road-Sign-Detection\\SS_OpenCV\\Histograma.cs [Design]",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-10-29T15:21:02.018Z",
-              "EditorCaption": " [Design]"
+              "WhenOpened": "2024-10-29T15:21:02.018Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 4,
               "Title": "MainForm.cs [Design]",
-              "DocumentMoniker": "C:\\Users\\Diogo\\Desktop\\Road-Sign-Detection\\SS_OpenCV\\MainForm.cs",
+              "DocumentMoniker": "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\SS_OpenCV\\MainForm.cs",
               "RelativeDocumentMoniker": "SS_OpenCV\\MainForm.cs",
               "ToolTip": "C:\\Users\\Diogo\\Desktop\\Road-Sign-Detection\\SS_OpenCV\\MainForm.cs [Design]",
-              "RelativeToolTip": "SS_OpenCV\\MainForm.cs [Design]",
+              "RelativeToolTip": "..\\..\\..\\..\\..\\..\\Diogo\\Desktop\\Road-Sign-Detection\\SS_OpenCV\\MainForm.cs [Design]",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-09-17T14:44:33.263Z",
-              "EditorCaption": " [Design]"
+              "WhenOpened": "2024-09-17T14:44:33.263Z"
             }
           ]
         }

@@ -1764,7 +1764,7 @@ namespace SS_OpenCV
                     {
                         for (x = 0; x < width; x++)
                         {
-                            if (!((((dataPtr_hsv[1] > 100) && (dataPtr_hsv[1] > 100)) && (dataPtr_hsv[0] < 10)) || (((dataPtr_hsv[0] > 160) && (dataPtr_hsv[1] > 100) && (dataPtr_hsv[1] > 100)) && (dataPtr_hsv[0] < 179))))
+                          if (!((dataPtr_hsv[1] > 100 && dataPtr_hsv[0] < 10) || (dataPtr_hsv[0] > 160 && dataPtr_hsv[1] > 100 && dataPtr_hsv[0] < 179)))
                             {
                                 dataPtr[0] = 0;
                                 dataPtr[1] = 0;
@@ -1781,94 +1781,6 @@ namespace SS_OpenCV
                         dataPtr_hsv += padding_hsv;
                     }
                 }
-            }
-        }
-
-        private static int[] getRedSignalOutlineCoords(Image<Bgr, byte>  imgDest)
-        {
-            unsafe
-            {
-                int width = imgDest.Width;
-                int height = imgDest.Height;
-
-                MIplImage m = imgDest.MIplImage;
-                byte* dataPtrOrg = (byte*)m.ImageData.ToPointer();     // Pointer to the image
-                int nChan = m.NChannels;                            // number of channels = 3
-                int padding = m.WidthStep - m.NChannels * m.Width;  // alinhament bytes (padding)
-
-                int x, y;
-                int top = -1, left = -1, bottom = -1, right = -1;
-                byte* dataPtr = dataPtrOrg;
-
-                //loop lines first
-                for (y = 0; y < height; y++)
-                {
-                    for (x = 0; x < width; x++)
-                    {
-                        if (dataPtr[0] != 0)
-                        {
-                            top = y;
-                            x = width; //force exit of for loops
-                            y = height;
-                        }
-                        dataPtr += nChan;
-                    }
-                    dataPtr += padding;
-                }
-
-                // Loop through columns first
-                for (x = 0; x < width; x++)
-                {
-                    dataPtr = dataPtrOrg + x * nChan;
-                    for (y = 0; y < height; y++)
-                    {
-                        if (dataPtr[0] != 0)
-                        {
-                            left = x;
-                            x = width; //force exit of for loops
-                            y = height;
-                        }
-
-                        dataPtr += width * nChan + padding;
-                    }
-                }
-
-                dataPtr = dataPtrOrg + height * (width * nChan);
-                for (y = height; y > 0; y--)
-                {
-                    for (x = 0; x < width; x++)
-                    {
-                        if (dataPtr[0] != 0)
-                        {
-                            bottom = y;
-                            x = width; //force exit of for loops
-                            y = 0;
-                        }
-                        dataPtr -= nChan;
-                    }
-                    dataPtr -= padding;
-                }
-                if (dataPtr[0] != 0 && bottom == -1){
-                    bottom = y;
-                }
-
-                // Loop through columns first starting at right
-                for (x = width; x > 0; x--)
-                {
-                    dataPtr = dataPtrOrg + x * nChan;
-                    for (y = 0; y < height; y++)
-                    {
-                        if (dataPtr[0] != 0)
-                        {
-                            right = x;
-                            x = 0; //force exit of for loops
-                            y = height;
-                        }
-
-                        dataPtr += width * nChan + padding;
-                    }
-                }
-                return new int[] { top, left, bottom, right };
             }
         }
 
@@ -2037,6 +1949,221 @@ namespace SS_OpenCV
             }
         }
 
+        private static void removeSmallAreas(Image<Bgr, byte> imgDest)
+        {
+            unsafe
+            {
+                int width = imgDest.Width;
+                int height = imgDest.Height;
+
+                MIplImage m = imgDest.MIplImage;
+                byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
+                int nChan = m.NChannels; // number of channels = 3
+                int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
+
+                Dictionary<(byte, byte, byte), int> pixelCount = new Dictionary<(byte, byte, byte), int>();
+
+                int x, y;
+                if (nChan == 3) // image in RGB
+                {
+                    for (y = 0; y < height; y++)
+                    {
+                        for (x = 0; x < width; x++)
+                        {
+                            if (dataPtr[0] != 0 || dataPtr[1] != 0 || dataPtr[2] != 0) { 
+                                var colorKey = (dataPtr[0], dataPtr[1], dataPtr[2]);
+
+                                // Update the count in the dictionary
+                                if (pixelCount.ContainsKey(colorKey))
+                                {
+                                    pixelCount[colorKey]++;
+                                }
+                                else
+                                {
+                                    pixelCount[colorKey] = 1;
+                                }
+                            }
+                            // advance the pointer to the next pixel
+                            dataPtr += nChan;
+                        }
+
+                        //at the end of the line advance the pointer by the aligment bytes (padding)
+                        dataPtr += padding;
+                    }
+
+                    // Calculate the number of elements to remove (top 10% of the dictionary size)
+                    int totalEntries = pixelCount.Count;
+                    int entriesToRemove = (int)Math.Ceiling(totalEntries * 0.1);
+
+                    // Order the dictionary by pixel count in descending order and take the top 10%
+                    var largestEntries = pixelCount
+                        .OrderByDescending(kvp => kvp.Value) // Order by pixel count
+                        .Take(entriesToRemove)               // Get the top 10%
+                        .Select(kvp => kvp.Key)              // Select the keys of these entries
+                        .ToList();                           // Convert to list to avoid modifying while iterating
+
+                    // Remove the top 10% entries from the dictionary
+                    foreach (var key in largestEntries)
+                    {
+                        pixelCount.Remove(key);
+                    }
+
+                    dataPtr = (byte*)m.ImageData.ToPointer();
+
+                    for (y = 0; y < height; y++)
+                    {
+                        for (x = 0; x < width; x++)
+                        {
+                            if (dataPtr[0] != 0 || dataPtr[1] != 0 || dataPtr[2] != 0)
+                            {
+
+                                if (pixelCount.ContainsKey((dataPtr[0], dataPtr[1], dataPtr[2])))
+                                {
+                                    dataPtr[0] = 0;
+                                    dataPtr[1] = 0;
+                                    dataPtr[2] = 0;
+                                }
+                            }
+                            
+
+                            // advance the pointer to the next pixel
+                            dataPtr += nChan;
+                        }
+
+                        //at the end of the line advance the pointer by the aligment bytes (padding)
+                        dataPtr += padding;
+                    }
+                }
+            }
+        }
+        private static Dictionary<(byte B, byte G, byte R), (int top, int left, int bottom, int right)> tagsCoords(Image<Bgr, byte> imgDest)
+        {
+            unsafe
+            {
+                int width = imgDest.Width;
+                int height = imgDest.Height;
+
+                MIplImage m = imgDest.MIplImage;
+                byte* dataPtrOrg = (byte*)m.ImageData.ToPointer();     // Pointer to the image
+                int nChan = m.NChannels;                            // number of channels = 3
+                int padding = m.WidthStep - m.NChannels * m.Width;  // alinhament bytes (padding)
+
+                int x, y;
+                int top = -1, left = -1, bottom = -1, right = -1;
+                byte* dataPtr = dataPtrOrg;
+
+
+                Dictionary<(byte B, byte G, byte R), int> tags = new Dictionary<(byte, byte, byte), int>();
+                Dictionary<(byte B, byte G, byte R), (int top, int left, int bottom, int right)> tagcoords = new Dictionary<(byte, byte, byte), (int, int, int, int)>();
+
+                for (y = 0; y < height; y++)
+                {
+                    for (x = 0; x < width; x++)
+                    {
+                        if (dataPtr[0] != 0 || dataPtr[1] != 0 || dataPtr[2] != 0)
+                        {
+                            var colorKey = (dataPtr[0], dataPtr[1], dataPtr[2]);
+
+                            // Update the count in the dictionary
+                            if (tags.ContainsKey(colorKey))
+                            {
+                                tags[colorKey]++;
+                            }
+                            else
+                            {
+                                tags[colorKey] = 1;
+                            }
+                        }
+                        // advance the pointer to the next pixel
+                        dataPtr += nChan;
+                    }
+
+                    //at the end of the line advance the pointer by the aligment bytes (padding)
+                    dataPtr += padding;
+                }
+
+                foreach (var tag in tags)
+                {
+                    dataPtr = dataPtrOrg;
+                    //loop lines first
+                    for (y = 0; y < height; y++)
+                    {
+                        for (x = 0; x < width; x++)
+                        {
+                            if (dataPtr[0] == tag.Key.B && dataPtr[1] == tag.Key.G && dataPtr[2] == tag.Key.R)
+                            {
+                                top = y;
+                                x = width; //force exit of for loops
+                                y = height;
+                            }
+                            dataPtr += nChan;
+                        }
+                        dataPtr += padding;
+                    }
+
+                    // Loop through columns first
+                    for (x = 0; x < width; x++)
+                    {
+                        dataPtr = dataPtrOrg + x * nChan;
+                        for (y = 0; y < height; y++)
+                        {
+                            if (dataPtr[0] == tag.Key.B && dataPtr[1] == tag.Key.G && dataPtr[2] == tag.Key.R)
+                            {
+                                left = x;
+                                x = width; //force exit of for loops
+                                y = height;
+                            }
+
+                            dataPtr += width * nChan + padding;
+                        }
+                    }
+
+                    dataPtr = dataPtrOrg + height * (width * nChan);
+                    for (y = height; y > 0; y--)
+                    {
+                        for (x = 0; x < width; x++)
+                        {
+                            if (dataPtr[0] == tag.Key.B && dataPtr[1] == tag.Key.G && dataPtr[2] == tag.Key.R)
+                            {
+                                bottom = y;
+                                x = width; //force exit of for loops
+                                y = 0;
+                            }
+                            dataPtr -= nChan;
+                        }
+                        dataPtr -= padding;
+                    }
+                    if (dataPtr[0] != 0 && bottom == -1)
+                    {
+                        bottom = y;
+                    }
+
+                    // Loop through columns first starting at right
+                    for (x = width; x > 0; x--)
+                    {
+                        dataPtr = dataPtrOrg + x * nChan;
+                        for (y = 0; y < height; y++)
+                        {
+                            if (dataPtr[0] == tag.Key.B && dataPtr[1] == tag.Key.G && dataPtr[2] == tag.Key.R)
+                            {
+                                right = x;
+                                x = 0; //force exit of for loops
+                                y = height;
+                            }
+
+                            dataPtr += width * nChan + padding;
+                        }
+                    }
+
+                    tagcoords[(tag.Key.B, tag.Key.G, tag.Key.R)] = (top, left, bottom, right);
+
+                }
+
+                return tagcoords;
+
+            }
+        }
+
         /// <summary>
         /// Sinal Reader
         /// </summary>
@@ -2079,13 +2206,18 @@ namespace SS_OpenCV
 
                 joinedComponents(imgDest);
 
-                /*
-                int[] result = getRedSignalOutlineCoords(imgDest);
+                removeSmallAreas(imgDest);
 
-                sinal.sinalRect = new Rectangle(result[1], result[0], result[3] - result[1], result[2] - result[0]);
 
-                imgDest.Draw(sinal.sinalRect, new Bgr(Color.Green));
-                */
+                Dictionary<(byte B, byte G, byte R), (int top, int left, int bottom, int right)> tagcoords = tagsCoords(imgDest);
+                
+                foreach (var tag in tagcoords){
+                    sinal.sinalRect = new Rectangle(tag.Value.left, tag.Value.top, tag.Value.right - tag.Value.left, tag.Value.bottom - tag.Value.top);
+
+                    imgDest.Draw(sinal.sinalRect, new Bgr(Color.Green));
+                }
+               
+                
                 // add sinal to results
                 sinalResult.results.Add(sinal);
             }
