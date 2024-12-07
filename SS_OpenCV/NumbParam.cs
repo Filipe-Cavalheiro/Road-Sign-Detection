@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace SS_OpenCV
 {
-    internal class ObjectParams
+    internal class NumbParam
     {
         // Properties for the object's coordinates
         public int Blue { get; set; }
@@ -14,25 +14,24 @@ namespace SS_OpenCV
         public int Red { get; set; }
         public int Area { get; set; }
 
-    // Optional values
+        // Optional values
         public (int x, int y) Top { get; set; }
         public (int x, int y) Left { get; set; }
         public (int x, int y) Bottom { get; set; }
         public (int x, int y) Right { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
-        public double radiusVariation { get; set; } 
-        public int CenterX { get; set; } 
+        public double radiusVariation { get; set; }
+        public int CenterX { get; set; }
         public int CenterY { get; set; }
         public int diameter { get; set; }
 
         public int objectType { get; set; }
 
         public int[] radius { get; set; }
-        public List<NumbParam> numbers { get; set; }
 
         // Constructor to initialize the mandatory values
-        public ObjectParams(int b, int g, int r, int area)
+        public NumbParam(int b, int g, int r, int area)
         {
             Blue = b;
             Green = g;
@@ -42,7 +41,7 @@ namespace SS_OpenCV
             Left = (0, 0);
             Bottom = (0, 0);
             Right = (0, 0);
-            Width = 0; 
+            Width = 0;
             Height = 0;
             CenterX = 0;
             CenterY = 0;
@@ -50,7 +49,7 @@ namespace SS_OpenCV
             diameter = 0;
             radiusVariation = 0.0;
             objectType = -1;
-            numbers = new List<NumbParam>();
         }
     }
 }
+

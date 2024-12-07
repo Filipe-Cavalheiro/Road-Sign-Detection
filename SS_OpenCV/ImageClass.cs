@@ -28,6 +28,7 @@ using System.Reflection;
 using System.Runtime.Serialization.Formatters;
 using Emgu.CV.Cuda;
 using System.Runtime.InteropServices;
+using Emgu.CV.Dnn;
 
 namespace SS_OpenCV
 {
@@ -1772,7 +1773,7 @@ namespace SS_OpenCV
                     {
                         for (x = 0; x < width; x++)
                         {
-                            if (!((dataPtr_hsv[1] > 100 && dataPtr_hsv[0] < 10) || (dataPtr_hsv[0] > 160 && dataPtr_hsv[1] > 100 && dataPtr_hsv[0] < 179)))
+                            if (!((dataPtr_hsv[1] > 100 && dataPtr_hsv[0] < 10) || (dataPtr_hsv[0] > 160 && dataPtr_hsv[1] > 100)))
                             {
                                 dataPtr[0] = 0;
                                 dataPtr[1] = 0;
@@ -2036,7 +2037,63 @@ namespace SS_OpenCV
                 }
                 return objects;
             }
-        }             
+        }
+
+        private static Dictionary<(byte B, byte G, byte R), NumbParam> removeSmallAreas_numb(Image<Bgr, byte> imgDest, int area)
+        {
+            unsafe
+            {
+                int width = imgDest.Width;
+                int height = imgDest.Height;
+
+                MIplImage m = imgDest.MIplImage;
+                byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
+                int nChan = m.NChannels; // number of channels = 3
+                int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
+
+                Dictionary<(byte, byte, byte), NumbParam> objects = new Dictionary<(byte, byte, byte), NumbParam>();
+
+                int x, y;
+                for (y = 0; y < height; y++)
+                {
+                    for (x = 0; x < width; x++)
+                    {
+                        if (dataPtr[0] != 0 || dataPtr[1] != 0 || dataPtr[2] != 0)
+                        {
+                            var colorKey = (dataPtr[0], dataPtr[1], dataPtr[2]);
+
+                            // Update the count in the dictionary
+                            if (objects.ContainsKey(colorKey))
+                            {
+                                objects[colorKey].Area++;
+                            }
+                            else
+                            {
+                                objects[colorKey] = new NumbParam(dataPtr[0], dataPtr[1], dataPtr[2], 1);
+                            }
+                        }
+                        // advance the pointer to the next pixel
+                        dataPtr += nChan;
+                    }
+
+                    //at the end of the line advance the pointer by the aligment bytes (padding)
+                    dataPtr += padding;
+                }
+
+                var largestEntries = objects
+                    .Where(kvp => kvp.Value.Area < area)
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+
+                // Remove the keys from the dictionary
+                foreach (var key in largestEntries)
+                {
+                    objects.Remove(key);
+                }
+                return objects;
+            }
+        }
+
         private static void getcoords(Image<Bgr, byte> imgDest, Dictionary<(byte B, byte G, byte R), ObjectParams> objects)
         {
             unsafe
@@ -2051,7 +2108,7 @@ namespace SS_OpenCV
                 int widthStep = m.WidthStep;
 
                 int x, y;
-                int top = -1, left = -1, bottom = -1, right = -1;
+                (int x, int y)  top = (-1, -1), left = (-1, -1), bottom = (-1, -1), right = (-1, -1);
                 byte* dataPtr = dataPtrOrg;
 
                 foreach (var sing_object in objects)
@@ -2064,7 +2121,7 @@ namespace SS_OpenCV
                         {
                             if (dataPtr[0] == sing_object.Value.Blue && dataPtr[1] == sing_object.Value.Green && dataPtr[2] == sing_object.Value.Red)
                             {
-                                top = y;
+                                top = (x, y);
                                 x = width; //force exit of for loops
                                 y = height;
                             }
@@ -2081,7 +2138,7 @@ namespace SS_OpenCV
                         {
                             if (dataPtr[0] == sing_object.Value.Blue && dataPtr[1] == sing_object.Value.Green && dataPtr[2] == sing_object.Value.Red)
                             {
-                                left = x;
+                                left = (x, y);
                                 x = width; //force exit of for loops
                                 y = height;
                             }
@@ -2097,17 +2154,13 @@ namespace SS_OpenCV
                         {
                             if (dataPtr[0] == sing_object.Value.Blue && dataPtr[1] == sing_object.Value.Green && dataPtr[2] == sing_object.Value.Red)
                             {
-                                bottom = y;
+                                bottom = (x, y);
                                 x = width; //force exit of for loops
                                 y = 0;
                             }
                             dataPtr -= nChan;
                         }
                         dataPtr -= padding;
-                    }
-                    if (dataPtr[0] != 0 && bottom == -1)
-                    {
-                        bottom = y;
                     }
 
                     // Loop through columns first starting at right
@@ -2118,7 +2171,7 @@ namespace SS_OpenCV
                         {
                             if (dataPtr[0] == sing_object.Value.Blue && dataPtr[1] == sing_object.Value.Green && dataPtr[2] == sing_object.Value.Red)
                             {
-                                right = x;
+                                right = (x, y);
                                 x = 0; //force exit of for loops
                                 y = height;
                             }
@@ -2126,13 +2179,112 @@ namespace SS_OpenCV
                             dataPtr += width * nChan + padding;
                         }
                     }
-                    if (top == -1 || left == -1 || right == -1 || bottom == -1)
+                    if (top.y == -1 || left.x == -1 || right.x == -1 || bottom.y == -1)
                         throw new InvalidOperationException("One or more values are -1, which is not allowed.");
                     objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Top = top;
                     objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Bottom = bottom;
                     objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Right = right;
                     objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Left = left;
-                 }
+                    objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Width = right.x - left.x;
+                    objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Height = bottom.y - top.y;
+                }
+            }
+        }
+
+        private static void getcoords_numb(Image<Bgr, byte> imgDest, Dictionary<(byte B, byte G, byte R), NumbParam> objects)
+        {
+            unsafe
+            {
+                int width = imgDest.Width;
+                int height = imgDest.Height;
+
+                MIplImage m = imgDest.MIplImage;
+                byte* dataPtrOrg = (byte*)m.ImageData.ToPointer();     // Pointer to the image
+                int nChan = m.NChannels;                            // number of channels = 3
+                int padding = m.WidthStep - m.NChannels * m.Width;  // alinhament bytes (padding)
+                int widthStep = m.WidthStep;
+
+                int x, y;
+                (int x, int y) top = (-1, -1), left = (-1, -1), bottom = (-1, -1), right = (-1, -1);
+                byte* dataPtr = dataPtrOrg;
+
+                foreach (var sing_object in objects)
+                {
+                    dataPtr = dataPtrOrg;
+                    //loop lines first
+                    for (y = 0; y < height; y++)
+                    {
+                        for (x = 0; x < width; x++)
+                        {
+                            if (dataPtr[0] == sing_object.Value.Blue && dataPtr[1] == sing_object.Value.Green && dataPtr[2] == sing_object.Value.Red)
+                            {
+                                top = (x, y);
+                                x = width; //force exit of for loops
+                                y = height;
+                            }
+                            dataPtr += nChan;
+                        }
+                        dataPtr += padding;
+                    }
+
+                    // Loop through columns first
+                    for (x = 0; x < width; x++)
+                    {
+                        dataPtr = dataPtrOrg + x * nChan;
+                        for (y = 0; y < height; y++)
+                        {
+                            if (dataPtr[0] == sing_object.Value.Blue && dataPtr[1] == sing_object.Value.Green && dataPtr[2] == sing_object.Value.Red)
+                            {
+                                left = (x, y);
+                                x = width; //force exit of for loops
+                                y = height;
+                            }
+
+                            dataPtr += widthStep;
+                        }
+                    }
+
+                    dataPtr = dataPtrOrg + height * (width * nChan);
+                    for (y = height; y > 0; y--)
+                    {
+                        for (x = 0; x < width; x++)
+                        {
+                            if (dataPtr[0] == sing_object.Value.Blue && dataPtr[1] == sing_object.Value.Green && dataPtr[2] == sing_object.Value.Red)
+                            {
+                                bottom = (x, y);
+                                x = width; //force exit of for loops
+                                y = 0;
+                            }
+                            dataPtr -= nChan;
+                        }
+                        dataPtr -= padding;
+                    }
+
+                    // Loop through columns first starting at right
+                    for (x = width; x > 0; x--)
+                    {
+                        dataPtr = dataPtrOrg + x * nChan;
+                        for (y = 0; y < height; y++)
+                        {
+                            if (dataPtr[0] == sing_object.Value.Blue && dataPtr[1] == sing_object.Value.Green && dataPtr[2] == sing_object.Value.Red)
+                            {
+                                right = (x, y);
+                                x = 0; //force exit of for loops
+                                y = height;
+                            }
+
+                            dataPtr += width * nChan + padding;
+                        }
+                    }
+                    if (top.y == -1 || left.x == -1 || right.x == -1 || bottom.y == -1)
+                        throw new InvalidOperationException("One or more values are -1, which is not allowed.");
+                    objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Top = top;
+                    objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Bottom = bottom;
+                    objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Right = right;
+                    objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Left = left;
+                    objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Width = right.x - left.x;
+                    objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Height = bottom.y - top.y;
+                }
             }
         }
         private static void calculateCircularity(Image<Bgr, byte> imgDest, Dictionary<(byte B, byte G, byte R), ObjectParams> objects)
@@ -2171,10 +2323,10 @@ namespace SS_OpenCV
                 foreach (var poss_sings in objects)
                 {
 
-                    top = poss_sings.Value.Top;
-                    bottom = poss_sings.Value.Bottom;
-                    right = poss_sings.Value.Right;
-                    left = poss_sings.Value.Left;
+                    top = poss_sings.Value.Top.y;
+                    bottom = poss_sings.Value.Bottom.y;
+                    right = poss_sings.Value.Right.x;
+                    left = poss_sings.Value.Left.x;
                     centerX = (right + left)/2;
                     centerY = (bottom + top)/2;
                     poss_sings.Value.CenterX = centerX;
@@ -2196,8 +2348,6 @@ namespace SS_OpenCV
                             y = 0; //force exit
                         else
                         {
-                             
-
                             dataPtr -= widthStep;
                             radius[0]++;
                         }
@@ -2318,6 +2468,7 @@ namespace SS_OpenCV
                     minradius = radius.Min();
                     diameter = (int)radius.Average()*2;
                     poss_sings.Value.diameter = diameter;
+                    poss_sings.Value.radius = radius;
 
                     // Calculate the variation
                     if (maxradius != 0)
@@ -2325,21 +2476,6 @@ namespace SS_OpenCV
                     else
                         poss_sings.Value.radiusVariation = 0;
                 }
-
-                //It is not possible to remove items while iterating
-                //so this list was made
-                // Create a list to store keys to remove
-                var keysToRemove = objects
-                    .Where(kvp => kvp.Value.radiusVariation > 50 || kvp.Value.diameter <= 20)
-                    .Select(kvp => kvp.Key)
-                    .ToList();
-
-                // Remove the keys from the dictionary
-                foreach (var key in keysToRemove)
-                {
-                    objects.Remove(key);
-                }
-
             }
         }
 
@@ -2347,46 +2483,98 @@ namespace SS_OpenCV
         {
             unsafe
             {
-                int width = imgDest.Width;
-                int height = imgDest.Height;
+                int x, y, height, width, nChan, nChan_hsv, padding, padding_hsv, threshold = 1;
+
+                width = imgDest.Width;
+                height = imgDest.Height;
+
+                float totalNPixeis = height * width;
 
                 MIplImage m = imgDest.MIplImage;
                 byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
-                int nChan = m.NChannels; // number of channels = 3
-                int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
+                nChan = m.NChannels; // number of channels = 3
+                padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
 
                 MIplImage m_hsv = imgHsv.MIplImage;
-                byte* dataPtr_hsv = (byte*)m_hsv.ImageData.ToPointer(); // Pointer to the image
-                int nChan_hsv = m_hsv.NChannels; // number of channels = 3
-                int padding_hsv = m_hsv.WidthStep - m_hsv.NChannels * m_hsv.Width; // alinhament bytes (padding)
+                byte* dataPtr_hsv = (byte*)m_hsv.ImageData.ToPointer();
+                nChan_hsv = m_hsv.NChannels;
+                padding_hsv = m_hsv.WidthStep - m_hsv.NChannels * m_hsv.Width;
 
-                int x, y;
-                if (nChan == 3) // image in RGB
+                double max_sig = 0, sig;
+                float q1, q2, u1, u2, p1;
+
+                float[] hist_arr = new float[256];
+                Array.Clear(hist_arr, 0, hist_arr.Length);
+
+                if (nChan != 3) return;
+
+                for (y = 0; y < height; ++y)
                 {
-                    for (y = 0; y < height; y++)
+                    for (x = 0; x < width; ++x)
                     {
-                        for (x = 0; x < width; x++)
-                        {
-                            if (!(dataPtr_hsv[2] <= 70))
-                            {
-                                dataPtr[0] = 0; // Blue channel
-                                dataPtr[1] = 0; // Green channel
-                                dataPtr[2] = 0; // Red channel
-                            }
+                        hist_arr[dataPtr_hsv[2]]++;
+                        dataPtr_hsv += nChan;
+                    }
+                    dataPtr_hsv += padding;
+                }
 
-                            // advance the pointer to the next pixel
-                            dataPtr += nChan;
-                            dataPtr_hsv += nChan_hsv;
+                for (int i = 0; i < hist_arr.Length; ++i)
+                {
+                    hist_arr[i] = hist_arr[i] / totalNPixeis;
+                }
+
+                for (int t = 1; t < 255; ++t)
+                {
+                    p1 = 0;
+                    u1 = 0;
+                    u2 = 0;
+                    for (int i = 0; i <= t; ++i)
+                    {
+                        p1 += hist_arr[i];
+                        u1 += i * hist_arr[i];
+                    }
+
+                    q1 = p1 / totalNPixeis;
+                    q2 = (1 - p1) / totalNPixeis;
+
+                    for (int i = t + 1; i < 255; ++i)
+                    {
+                        u2 += i * hist_arr[i];
+                    }
+
+                    sig = Math.Sqrt(q1 * q2) * Math.Abs(u1 / q1 - u2 / q2);
+                    if (sig > max_sig)
+                    {
+                        max_sig = sig;
+                        threshold = (int)Math.Round((float)t / 1.6);
+                    }
+
+                }
+
+                dataPtr_hsv = (byte*)m_hsv.ImageData.ToPointer(); // Pointer to the image
+
+                for (y = 0; y < height; y++)
+                {
+                    for (x = 0; x < width; x++)
+                    {
+                        if (!(dataPtr_hsv[2] <= threshold))
+                        {
+                            dataPtr[0] = 0; // Blue channel
+                            dataPtr[1] = 0; // Green channel
+                            dataPtr[2] = 0; // Red channel
                         }
 
-                        //at the end of the line advance the pointer by the aligment bytes (padding)
-                        dataPtr += padding;
-                        dataPtr_hsv += padding_hsv;
+                        // advance the pointer to the next pixel
+                        dataPtr += nChan;
+                        dataPtr_hsv += nChan_hsv;
                     }
+
+                    //at the end of the line advance the pointer by the aligment bytes (padding)
+                    dataPtr += padding;
+                    dataPtr_hsv += padding_hsv;
                 }
             }
         }
-
 
         /// <summary>
         /// Convert to Hsv
@@ -2574,7 +2762,6 @@ namespace SS_OpenCV
                 return (float)((float)inter / (float)union);
             }
         }
-
         public static void ScaleXY(Image<Bgr, byte> imgOutput, Image<Bgr, byte> imgInput, float scaleFactorx, float scaleFactory)
         {
             unsafe
@@ -2631,6 +2818,34 @@ namespace SS_OpenCV
             }
         }
 
+        public static void identifyObjects(Dictionary<(byte B, byte G, byte R), ObjectParams> objects)
+        {
+            int maxTopY;
+            int minTopY;
+
+            foreach(var sign_object in objects)
+            {
+                if (sign_object.Value.radiusVariation < 50 && sign_object.Value.diameter > 20)
+                {
+                    if(sign_object.Value.numbers.Capacity != 0)
+                        sign_object.Value.objectType = 10;
+                    else
+                        sign_object.Value.objectType = 13;
+                }
+                else if (sign_object.Value.radiusVariation < 80 && sign_object.Value.diameter > 20)
+                {
+                    maxTopY = Math.Max(sign_object.Value.Top.y, Math.Max(sign_object.Value.Left.y, sign_object.Value.Right.y));
+                    minTopY = Math.Min(sign_object.Value.Top.y, Math.Min(sign_object.Value.Left.y, sign_object.Value.Right.y));
+                    double variance = (double)((maxTopY - minTopY) / (double)maxTopY) * 100;
+                    if (variance < 10)
+                        sign_object.Value.objectType = 11;
+                    else
+                        sign_object.Value.objectType = 12;
+                }
+            }
+        }
+
+
         /// <summary>
         /// Sinal Reader
         /// </summary>
@@ -2639,112 +2854,175 @@ namespace SS_OpenCV
         /// <param name="level">nivel de dificuldade da imagem</param>
         /// <param name="sinalResult">Objecto resultado - lista de sinais e respectivas informaçoes</param>
         public static void SinalReader(Image<Bgr, byte> imgDest, Image<Bgr, byte> imgOrig, int level, out Results sinalResult){
-            unsafe
-            {
-                int width = imgOrig.Width;
-                int height = imgOrig.Height;
+            int yoffset = 0;
 
-                Image<Bgr, byte> imgCopy = imgOrig.Copy();
+            int width = imgOrig.Width;
+            int height = imgOrig.Height;
 
-                MIplImage m = imgDest.MIplImage;
-                byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
-                int nChan = m.NChannels; // number of channels = 3
-                int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
+            // Choose a font scale and thickness
+            double fontScale = 1.0;
+            int thickness = 2;
+            Point textPosition;
+            string numberText;
 
-                sinalResult = new Results();
+            Image<Bgr, byte> imgCopy = imgOrig.Copy();
 
-                //Sinal creation
-                Sinal sinal = new Sinal();
-                sinal.sinalEnum = ResultsEnum.sinal_limite_velocidade;
+            sinalResult = new Results();
 
-                Digito digito = new Digito();
-                digito.digitoRect = new Rectangle(20, 30, 100, 40);
-                digito.digito = "1";
-                sinal.digitos.Add(digito);
-
-                Digito digito2 = new Digito();
-                digito2.digitoRect = new Rectangle(80, 30, 100, 40);
-                digito2.digito = "1";
-                sinal.digitos.Add(digito2);
-
-                // Convert the image from BGR to HSV color space
-                Image<Hsv, byte> imgHsv = new Image<Hsv, byte>(width, height);
-                ConvertToHsv(imgOrig, imgHsv);
+            // Convert the image from BGR to HSV color space
+            Image<Hsv, byte> imgHsv = new Image<Hsv, byte>(width, height);
+            ConvertToHsv(imgOrig, imgHsv);
                 
-                Filter4Red(imgCopy, imgHsv);
+            Filter4Red(imgCopy, imgHsv);
                 
-                joinedComponents(imgCopy);
+            joinedComponents(imgCopy);
 
-                Dictionary<(byte B, byte G, byte R), ObjectParams> objects = removeSmallAreas(imgCopy, 1000);
+            Dictionary<(byte B, byte G, byte R), ObjectParams> objects = removeSmallAreas(imgCopy, 1000);
 
-                getcoords(imgCopy, objects);
+            getcoords(imgCopy, objects);
 
-                calculateCircularity(imgCopy, objects);
-               
-                imgCopy = imgOrig.Copy();
-                foreach (var tag in objects)
-                {   
-                    int left = tag.Value.Left;
-                    int right = tag.Value.Right;
-                    int top = tag.Value.Top;    
-                    int bottom = tag.Value.Bottom;
+            calculateCircularity(imgCopy, objects);
 
-                    // Define the cropping rectangle based on the desired coordinates
-                    Rectangle cropRect = new Rectangle(left, top, right - left, bottom - top);
+            imgCopy = imgOrig.Copy();
+                
+            foreach (var tag in objects)
+            {   
+                int left = tag.Value.Left.x;
+                int right = tag.Value.Right.x;
+                int top = tag.Value.Top.y;    
+                int bottom = tag.Value.Bottom.y;
+                int widthObj = tag.Value.Width;
+                int heightObj = tag.Value.Height;
+
+                yoffset = (int)(heightObj*0.25);
+
+                // Define the cropping rectangle based on the desired coordinates
+                Rectangle cropRect = new Rectangle(left, top + yoffset, right - left, (bottom - top) - yoffset * 2);
+
+                // Set the ROI (Region of Interest) of the original image to the crop rectangle
+                imgCopy.ROI = cropRect;
+
+                // Create a new image to store the cropped region
+                Image<Bgr, byte> croppedImage = imgCopy.Copy();
+
+                // Reset the ROI of the original image to avoid affecting further operations
+                imgCopy.ROI = Rectangle.Empty;
+
+                Image<Hsv, byte> croppedimgHsv = new Image<Hsv, byte>(croppedImage.Width, croppedImage.Height);
+                ConvertToHsv(croppedImage, croppedimgHsv);
+
+                filter4Black(croppedImage, croppedimgHsv);
+                    
+                joinedComponents(croppedImage);
+
+                Dictionary<(byte B, byte G, byte R), NumbParam> numbers = removeSmallAreas_numb(croppedImage, 400);
+
+                getcoords_numb(croppedImage, numbers);
+
+                numbers = numbers
+                                .Where(kvp => kvp.Value.Height >= kvp.Value.Width)
+                                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+                foreach (var number in numbers)
+                {
+                    int leftNum = left + number.Value.Left.x;
+                    int topNum = top + yoffset + number.Value.Top.y;
+                    int widthNum = number.Value.Width;
+                    int heightNum = number.Value.Height;
 
                     // Set the ROI (Region of Interest) of the original image to the crop rectangle
-                    imgCopy.ROI = cropRect;
-
-                    // Create a new image to store the cropped region
-                    Image<Bgr, byte> croppedImage = imgCopy.Copy();
-
-                    // Reset the ROI of the original image to avoid affecting further operations
+                    imgCopy.ROI = new Rectangle(leftNum, topNum, widthNum, heightNum);
+                    Image<Bgr, byte> numImg = imgCopy.Copy();
                     imgCopy.ROI = Rectangle.Empty;
 
-                    Image<Hsv, byte> croppedimgHsv = new Image<Hsv, byte>(croppedImage.Width, croppedImage.Height);
-                    ConvertToHsv(croppedImage, croppedimgHsv);
-
-                    filter4Black(croppedImage, croppedimgHsv);
-                    
-                    joinedComponents(croppedImage);
-
-                    Dictionary<(byte B, byte G, byte R), ObjectParams> numbers = removeSmallAreas(croppedImage, 400);
-
-                    getcoords(croppedImage, numbers);
-                    
-                    foreach (var number in numbers)
-                    {
-                        int leftNum = left + number.Value.Left;
-                        int topNum = top + number.Value.Top;
-                        int widthNum = number.Value.Right - number.Value.Left;
-                        int heightNum = number.Value.Bottom - number.Value.Top;
-
-                        // Define the cropping rectangle based on the desired coordinates
-                        cropRect = new Rectangle(leftNum, topNum, widthNum, heightNum);
-
-                        // Set the ROI (Region of Interest) of the original image to the crop rectangle
-                        imgCopy.ROI = cropRect;
-                        Image<Bgr, byte> numImg = imgCopy.Copy();
-                        imgCopy.ROI = Rectangle.Empty;
-
-                        FindNum(numImg);
-
-                        numImg.CopyTo(imgDest.GetSubRect(cropRect));
-                        
-                        sinal.sinalRect = new Rectangle(leftNum, topNum, widthNum, heightNum);
-
-                        imgDest.Draw(sinal.sinalRect, new Bgr(Color.BlueViolet));
-                    }
-
-                    sinal.sinalRect = new Rectangle(tag.Value.Left, tag.Value.Top, tag.Value.Right - tag.Value.Left, tag.Value.Bottom - tag.Value.Top);
-
-                    imgDest.Draw(sinal.sinalRect, new Bgr(Color.Green));
+                    number.Value.objectType = FindNum(numImg);
                 }
-               
-                // add sinal to results
+
+                numbers = numbers
+                                .Where(kvp => kvp.Value.objectType != -1)
+                                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+                foreach (var number in numbers)
+                {
+                    tag.Value.numbers.Add(number.Value);
+                }
+            }
+
+            identifyObjects(objects);
+
+            objects = objects
+                        .Where(kvp => kvp.Value.objectType != -1)
+                        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+            foreach (var sing_object in objects)
+            {
+                Sinal sinal = new Sinal();
+
+                int left = sing_object.Value.Left.x;
+                int top = sing_object.Value.Top.y;
+                int widthObj = sing_object.Value.Width;
+                int heightObj = sing_object.Value.Height;
+
+                yoffset = (int)(heightObj * 0.25);
+
+                if (sing_object.Value.objectType == 10)
+                    sinal.sinalEnum = ResultsEnum.sinal_limite_velocidade;
+                else if (sing_object.Value.objectType == 11 || sing_object.Value.objectType == 12)
+                    sinal.sinalEnum = ResultsEnum.sinal_perigo;
+                else if (sing_object.Value.objectType == 13)
+                    sinal.sinalEnum = ResultsEnum.sinal_proibicao;
+
+                foreach (var number in sing_object.Value.numbers)
+                {
+                    int leftNum = left + number.Left.x;
+                    int topNum = top + yoffset + number.Top.y;
+                    int widthNum = number.Width;
+                    int heightNum = number.Height;
+
+                    numberText = number.objectType.ToString();
+
+                    Digito digito = new Digito();
+                    digito.digitoRect = new Rectangle(leftNum, topNum, widthNum, heightNum);
+                    digito.digito = numberText;
+                    sinal.digitos.Add(digito);
+
+                    // Adjust the position to center the text
+                    textPosition = new Point(leftNum + widthNum / 2, topNum + heightNum / 2);
+
+                    // Draw the number on the image
+                    CvInvoke.PutText(
+                        imgDest,                         // Image to draw on
+                        numberText,                      // Text to draw
+                        textPosition,                    // Position of the text
+                        FontFace.HersheySimplex,         // Font type
+                        fontScale,                       // Font scale
+                        new MCvScalar(255, 0, 0),    // Text color (white)
+                        thickness                        // Thickness of the text
+                    );
+
+                    imgDest.Draw(digito.digitoRect, new Bgr(Color.BlueViolet));
+                }
+
+                sinal.sinalRect = new Rectangle(left, top, widthObj, heightObj);
                 sinalResult.results.Add(sinal);
+
+                numberText = sing_object.Value.objectType.ToString();
+                // Adjust the position to center the text
+                textPosition = new Point(left + widthObj / 2, top + heightObj / 3);
+
+                // Draw the number on the image
+                CvInvoke.PutText(
+                    imgDest,                         // Image to draw on
+                    numberText,                      // Text to draw
+                    textPosition,                    // Position of the text
+                    FontFace.HersheySimplex,         // Font type
+                    fontScale,                       // Font scale
+                    new MCvScalar(0, 255, 0),          // Text color (white)
+                    thickness                        // Thickness of the text
+                );
+
+                imgDest.Draw(sinal.sinalRect, new Bgr(Color.Green));
             }
         }
-
     }
 }
