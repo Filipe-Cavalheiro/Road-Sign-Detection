@@ -2515,91 +2515,46 @@ namespace SS_OpenCV
             }
         }
 
-        public static void identifyObjects(Dictionary<(byte B, byte G, byte R), ObjectParams> objects)
+        private static Dictionary<(byte B, byte G, byte R), ObjectParams> ObjectFinder(Image<Bgr, byte> imgOrig, float offsetRatio)
         {
-            int maxTopY;
-            int minTopY;
+            int width, height;
+            width = imgOrig.Width;
+            height = imgOrig.Height;
 
-            foreach(var sign_object in objects)
-            {
-                if (sign_object.Value.radiusVariation < 50 && sign_object.Value.diameter > 20)
-                {
-                    if(sign_object.Value.numbers.Capacity != 0)
-                        sign_object.Value.objectType = 10;
-                    else
-                        sign_object.Value.objectType = 13;
-                }
-                else if (sign_object.Value.radiusVariation < 80 && sign_object.Value.diameter > 20)
-                {
-                    maxTopY = Math.Max(sign_object.Value.Top.y, Math.Max(sign_object.Value.Left.y, sign_object.Value.Right.y));
-                    minTopY = Math.Min(sign_object.Value.Top.y, Math.Min(sign_object.Value.Left.y, sign_object.Value.Right.y));
-                    double variance = (double)((maxTopY - minTopY) / (double)maxTopY) * 100;
-                    if (variance < 10)
-                        sign_object.Value.objectType = 11;
-                    else
-                        sign_object.Value.objectType = 12;
-                }
-            }
-        }
-
-
-        /// <summary>
-        /// Sinal Reader
-        /// </summary>
-        /// <param name="imgDest">imagem de destino (cópia da original)</param>
-        /// <param name="imgOrig">imagem original </param>
-        /// <param name="level">nivel de dificuldade da imagem</param>
-        /// <param name="sinalResult">Objecto resultado - lista de sinais e respectivas informaçoes</param>
-        public static void SinalReader(Image<Bgr, byte> imgDest, Image<Bgr, byte> imgOrig, int level, out Results sinalResult){
-            int yoffset = 0;
-
-            int width = imgOrig.Width;
-            int height = imgOrig.Height;
-
-            // Choose a font scale and thickness
-            double fontScale = 1.0;
-            int thickness = 2;
-            Point textPosition;
-            string numberText;
+            int left, top, widthObj, heightObj, yoffset, leftNum, topNum, widthNum, heightNum;
 
             Image<Bgr, byte> imgCopy = imgOrig.Copy();
-
-            sinalResult = new Results();
 
             // Convert the image from BGR to HSV color space
             Image<Hsv, byte> imgHsv = new Image<Hsv, byte>(width, height);
             ConvertToHsv(imgOrig, imgHsv);
-                
+
             Filter4Red(imgCopy, imgHsv);
-                
+
             joinedComponents(imgCopy);
 
             Dictionary<(byte B, byte G, byte R), ObjectParams> objects = ObjectParams.removeSmallAreas(imgCopy, 1000);
 
-            foreach (var i in objects)
+            foreach (var sign in objects)
             {
-               i.Value.getCoords(imgCopy, i.Value);
+                sign.Value.getCoords(imgCopy, sign.Value);
             }
-
-            //getcoords(imgCopy, objects);
 
             calculateCircularity(imgCopy, objects);
 
             imgCopy = imgOrig.Copy();
-                
-            foreach (var tag in objects)
-            {   
-                int left = tag.Value.Left.x;
-                int right = tag.Value.Right.x;
-                int top = tag.Value.Top.y;    
-                int bottom = tag.Value.Bottom.y;
-                int widthObj = tag.Value.Width;
-                int heightObj = tag.Value.Height;
 
-                yoffset = (int)(heightObj*0.25);
+            foreach (var tag in objects)
+            {
+                left = tag.Value.Left.x;
+                top = tag.Value.Top.y;
+                widthObj = tag.Value.Width;
+                heightObj = tag.Value.Height;
+
+                yoffset = (int)(heightObj * offsetRatio);
 
                 // Define the cropping rectangle based on the desired coordinates
-                Rectangle cropRect = new Rectangle(left, top + yoffset, right - left, (bottom - top) - yoffset * 2);
+                Rectangle cropRect = new Rectangle(left, top + yoffset, widthObj, heightObj - yoffset * 2);
 
                 // Set the ROI (Region of Interest) of the original image to the crop rectangle
                 imgCopy.ROI = cropRect;
@@ -2614,14 +2569,14 @@ namespace SS_OpenCV
                 ConvertToHsv(croppedImage, croppedimgHsv);
 
                 filter4Black(croppedImage, croppedimgHsv);
-                    
+
                 joinedComponents(croppedImage);
 
                 Dictionary<(byte B, byte G, byte R), NumbParam> numbers = NumbParam.removeSmallAreas(croppedImage, 400);
 
-                foreach (var i in numbers)
+                foreach (var num in numbers)
                 {
-                   i.Value.getCoords(croppedImage, i.Value);
+                    num.Value.getCoords(croppedImage, num.Value);
                 }
 
                 numbers = numbers
@@ -2630,10 +2585,10 @@ namespace SS_OpenCV
 
                 foreach (var number in numbers)
                 {
-                    int leftNum = left + number.Value.Left.x;
-                    int topNum = top + yoffset + number.Value.Top.y;
-                    int widthNum = number.Value.Width;
-                    int heightNum = number.Value.Height;
+                    leftNum = left + number.Value.Left.x;
+                    topNum = top + yoffset + number.Value.Top.y;
+                    widthNum = number.Value.Width;
+                    heightNum = number.Value.Height;
 
                     // Set the ROI (Region of Interest) of the original image to the crop rectangle
                     imgCopy.ROI = new Rectangle(leftNum, topNum, widthNum, heightNum);
@@ -2653,20 +2608,48 @@ namespace SS_OpenCV
                 }
             }
 
-            identifyObjects(objects);
+            ObjectParams.identifyObjects(objects);
 
             objects = objects
                         .Where(kvp => kvp.Value.objectType != -1)
                         .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
+            return objects;
+        }
+
+
+        /// <summary>
+        /// Sinal Reader
+        /// </summary>
+        /// <param name="imgDest">imagem de destino (cópia da original)</param>
+        /// <param name="imgOrig">imagem original </param>
+        /// <param name="level">nivel de dificuldade da imagem</param>
+        /// <param name="sinalResult">Objecto resultado - lista de sinais e respectivas informaçoes</param>
+        public static void SinalReader(Image<Bgr, byte> imgDest, Image<Bgr, byte> imgOrig, int level, out Results sinalResult){
+            int width = imgOrig.Width;
+            int height = imgOrig.Height;
+
+            int left, top, widthObj, heightObj, yoffset, leftNum, topNum, widthNum, heightNum;
+
+            // Choose a font scale and thickness
+            double fontScale = 1.0;
+            float offsetRatio = 0.25f;
+            int thickness = 2;
+            Point textPosition;
+            string numberText;
+
+            sinalResult = new Results();
+
+            Dictionary<(byte B, byte G, byte R), ObjectParams> objects = ObjectFinder(imgOrig, offsetRatio);
+
             foreach (var sing_object in objects)
             {
                 Sinal sinal = new Sinal();
 
-                int left = sing_object.Value.Left.x;
-                int top = sing_object.Value.Top.y;
-                int widthObj = sing_object.Value.Width;
-                int heightObj = sing_object.Value.Height;
+                left = sing_object.Value.Left.x;
+                top = sing_object.Value.Top.y;
+                widthObj = sing_object.Value.Width;
+                heightObj = sing_object.Value.Height;
 
                 yoffset = (int)(heightObj * 0.25);
 
@@ -2679,10 +2662,10 @@ namespace SS_OpenCV
 
                 foreach (var number in sing_object.Value.numbers)
                 {
-                    int leftNum = left + number.Left.x;
-                    int topNum = top + yoffset + number.Top.y;
-                    int widthNum = number.Width;
-                    int heightNum = number.Height;
+                    leftNum = left + number.Left.x;
+                    topNum = top + yoffset + number.Top.y;
+                    widthNum = number.Width;
+                    heightNum = number.Height;
 
                     numberText = number.objectType.ToString();
 

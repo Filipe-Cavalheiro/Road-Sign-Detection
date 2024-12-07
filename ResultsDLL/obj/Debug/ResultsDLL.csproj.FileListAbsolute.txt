@@ -4,21 +4,9 @@ C:\Users\atbdm\OneDrive - FCT NOVA\Aulas\SS\SS 2024-2025\praticas\Projeto\SS_Ope
 C:\Users\atbdm\OneDrive - FCT NOVA\Aulas\SS\SS 2024-2025\praticas\Projeto\SS_OpenCV_Base\ResultsDLL\bin\Debug\ResultsDLL.pdb
 C:\Users\atbdm\OneDrive - FCT NOVA\Aulas\SS\SS 2024-2025\praticas\Projeto\SS_OpenCV_Base\ResultsDLL\obj\Debug\ResultsDLL.dll
 C:\Users\atbdm\OneDrive - FCT NOVA\Aulas\SS\SS 2024-2025\praticas\Projeto\SS_OpenCV_Base\ResultsDLL\obj\Debug\ResultsDLL.pdb
-C:\Users\caval\Documents\Universidade\7_Semestre\SS\SS OpenCV Base 2024 09 12-20240912\SS_OpenCV_Base\ResultsDLL\bin\Debug\ResultsDLL.dll
-C:\Users\caval\Documents\Universidade\7_Semestre\SS\SS OpenCV Base 2024 09 12-20240912\SS_OpenCV_Base\ResultsDLL\bin\Debug\ResultsDLL.pdb
-C:\Users\caval\Documents\Universidade\7_Semestre\SS\SS OpenCV Base 2024 09 12-20240912\SS_OpenCV_Base\ResultsDLL\obj\Debug\ResultsDLL.csproj.AssemblyReference.cache
-C:\Users\caval\Documents\Universidade\7_Semestre\SS\SS OpenCV Base 2024 09 12-20240912\SS_OpenCV_Base\ResultsDLL\obj\Debug\ResultsDLL.csproj.CoreCompileInputs.cache
-C:\Users\caval\Documents\Universidade\7_Semestre\SS\SS OpenCV Base 2024 09 12-20240912\SS_OpenCV_Base\ResultsDLL\obj\Debug\ResultsDLL.dll
-C:\Users\caval\Documents\Universidade\7_Semestre\SS\SS OpenCV Base 2024 09 12-20240912\SS_OpenCV_Base\ResultsDLL\obj\Debug\ResultsDLL.pdb
 C:\Users\Diogo\Desktop\Road-Sign-Detection\ResultsDLL\bin\Debug\ResultsDLL.dll
 C:\Users\Diogo\Desktop\Road-Sign-Detection\ResultsDLL\bin\Debug\ResultsDLL.pdb
 C:\Users\Diogo\Desktop\Road-Sign-Detection\ResultsDLL\obj\Debug\ResultsDLL.csproj.AssemblyReference.cache
 C:\Users\Diogo\Desktop\Road-Sign-Detection\ResultsDLL\obj\Debug\ResultsDLL.csproj.CoreCompileInputs.cache
 C:\Users\Diogo\Desktop\Road-Sign-Detection\ResultsDLL\obj\Debug\ResultsDLL.dll
 C:\Users\Diogo\Desktop\Road-Sign-Detection\ResultsDLL\obj\Debug\ResultsDLL.pdb
-C:\Users\caval\Documents\Universidade\7_Semestre\SS\Road-Sign-Detection\ResultsDLL\bin\Debug\ResultsDLL.dll
-C:\Users\caval\Documents\Universidade\7_Semestre\SS\Road-Sign-Detection\ResultsDLL\bin\Debug\ResultsDLL.pdb
-C:\Users\caval\Documents\Universidade\7_Semestre\SS\Road-Sign-Detection\ResultsDLL\obj\Debug\ResultsDLL.csproj.AssemblyReference.cache
-C:\Users\caval\Documents\Universidade\7_Semestre\SS\Road-Sign-Detection\ResultsDLL\obj\Debug\ResultsDLL.csproj.CoreCompileInputs.cache
-C:\Users\caval\Documents\Universidade\7_Semestre\SS\Road-Sign-Detection\ResultsDLL\obj\Debug\ResultsDLL.dll
-C:\Users\caval\Documents\Universidade\7_Semestre\SS\Road-Sign-Detection\ResultsDLL\obj\Debug\ResultsDLL.pdb

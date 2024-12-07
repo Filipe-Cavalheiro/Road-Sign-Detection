@@ -211,5 +211,33 @@ namespace SS_OpenCV
                 return objects;
             }
         }
+
+
+        public static void identifyObjects(Dictionary<(byte B, byte G, byte R), ObjectParams> objects)
+        {
+            int maxTopY;
+            int minTopY;
+
+            foreach (var sign_object in objects)
+            {
+                if (sign_object.Value.radiusVariation < 50 && sign_object.Value.diameter > 20)
+                {
+                    if (sign_object.Value.numbers.Capacity != 0)
+                        sign_object.Value.objectType = 10;
+                    else
+                        sign_object.Value.objectType = 13;
+                }
+                else if (sign_object.Value.radiusVariation < 80 && sign_object.Value.diameter > 20)
+                {
+                    maxTopY = Math.Max(sign_object.Value.Top.y, Math.Max(sign_object.Value.Left.y, sign_object.Value.Right.y));
+                    minTopY = Math.Min(sign_object.Value.Top.y, Math.Min(sign_object.Value.Left.y, sign_object.Value.Right.y));
+                    double variance = (double)((maxTopY - minTopY) / (double)maxTopY) * 100;
+                    if (variance < 10)
+                        sign_object.Value.objectType = 11;
+                    else
+                        sign_object.Value.objectType = 12;
+                }
+            }
+        }
     }
 }
