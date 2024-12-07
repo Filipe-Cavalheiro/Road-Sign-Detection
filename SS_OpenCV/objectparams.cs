@@ -19,10 +19,11 @@ namespace SS_OpenCV
         public int Left { get; set; }
         public int Bottom { get; set; }
         public int Right { get; set; }
-        public double Circularity { get; set; } 
+        public double radiusVariation { get; set; } 
         public int CenterX { get; set; } 
         public int CenterY { get; set; }
-        public double diamter { get; set; }
+
+        public int diameter { get; set; }
 
         // Constructor to initialize the mandatory values
         public ObjectParams(int b, int g, int r, int area)
@@ -37,8 +38,8 @@ namespace SS_OpenCV
             Right = 0;
             CenterX = 0;
             CenterY = 0;
-            diamter = 0;
-            Circularity = 0.0;
+            diameter = 0;
+            radiusVariation = 0.0;
         }
     }
 }

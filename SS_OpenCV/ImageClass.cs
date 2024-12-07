@@ -27,6 +27,7 @@ using System.Security.Cryptography;
 using System.Reflection;
 using System.Runtime.Serialization.Formatters;
 using Emgu.CV.Cuda;
+using System.Runtime.InteropServices;
 
 namespace SS_OpenCV
 {
@@ -1799,43 +1800,43 @@ namespace SS_OpenCV
                 int height = imgDest.Height;
 
                 Image<Bgr, byte> imgAux = new Image<Bgr, byte>(width + 2, height + 2);
-                CvInvoke.CopyMakeBorder(imgDest, imgAux, 1, 1, 1, 1, Emgu.CV.CvEnum.BorderType.Replicate);
+                CvInvoke.CopyMakeBorder(imgDest, imgAux, 1, 1, 1, 1, Emgu.CV.CvEnum.BorderType.Constant);
 
                 MIplImage mo = imgDest.MIplImage;
                 MIplImage m = imgAux.MIplImage;
-                byte* dataPtrOrg = (byte*)mo.ImageData.ToPointer();     // Pointer to the image
                 int nChan = mo.NChannels;
-                int witdhStep = m.WidthStep;
+                int widthStep = m.WidthStep;
                 int padding = mo.WidthStep - nChan * width;  // alinhament bytes (padding)
 
-                byte* dataPtrd;
-                byte* dataPtro = (byte*)mo.ImageData.ToPointer();
-                byte* dataPtrAux;
 
-                byte* dataPtr = dataPtrOrg;
+                byte* dataPtr = (byte*)mo.ImageData.ToPointer();
+                byte* dataPtrAux = (byte*)m.ImageData.ToPointer();
+                byte* dataPtr0;
                 int currentTag = 100;
-                int tag;
+                int tag_pixel_topL, tag_pixel_top, tag_pixel_topR;
+                int tag, min, max;
                 int x, y;
                 byte* pixel_left;
                 byte* pixel_top;
                 byte* pixel_topR;
                 byte* pixel_topL;
-                List<(int MinValue, int MaxValue)> colisions = new List<(int, int)>();
-                
+                Dictionary<int, int> collisions = new Dictionary<int, int>();
+
                 for (y = 0; y < height; y++)
                 {
                     for (x = 0; x < width; x++)
                     {
-                        if (dataPtr[0] == 0 && dataPtr[1] == 0 && dataPtr[2] == 0)
+                        dataPtr0 = dataPtrAux + (x + 1) * nChan + (y + 1) * widthStep;
+
+                        if (dataPtr0[0] == 0 && dataPtr0[1] == 0 && dataPtr0[2] == 0)
                         {
-                            dataPtr += nChan;
                             continue;
                         }
 
-                        pixel_left = dataPtr - nChan;
-                        pixel_top = dataPtr - witdhStep;
-                        pixel_topL = dataPtr - witdhStep - nChan;
-                        pixel_topR = dataPtr - witdhStep + nChan;
+                        pixel_left = dataPtr0 - nChan;
+                        pixel_top = dataPtr0 - widthStep;
+                        pixel_topL = pixel_left - widthStep;
+                        pixel_topR = pixel_top + nChan;
 
                         //new object found (pixel is one  and pixels left and all top is zero)
                         if ((pixel_left[0] == 0 && pixel_left[1] == 0 && pixel_left[2] == 0) &&
@@ -1843,12 +1844,11 @@ namespace SS_OpenCV
                             (pixel_topL[0] == 0 && pixel_topL[1] == 0 && pixel_topL[2] == 0) &&
                             (pixel_topR[0] == 0 && pixel_topR[1] == 0 && pixel_topR[2] == 0))
                         {
-                            dataPtr[0] = (byte)((currentTag >> 16) & 0xFF);
-                            dataPtr[1] = (byte)((currentTag >> 8) & 0xFF);
-                            dataPtr[2] = (byte)(currentTag & 0xFF);
+                            dataPtr0[0] = (byte)((currentTag >> 16) & 0xFF);
+                            dataPtr0[1] = (byte)((currentTag >> 8) & 0xFF);
+                            dataPtr0[2] = (byte)(currentTag & 0xFF);
                             currentTag += 100;
 
-                            dataPtr += nChan;
                             continue;
                         }
 
@@ -1858,103 +1858,121 @@ namespace SS_OpenCV
                         {
                             tag = pixel_left[0] << 16 | pixel_left[1] << 8 | pixel_left[2];
                         }
-                        if (pixel_top[0] != 0 || pixel_top[1] != 0 || pixel_top[2] != 0)
+                        if (pixel_topL[0] != 0 || pixel_topL[1] != 0 || pixel_topL[2] != 0)
                         {
+                            tag_pixel_topL = pixel_topL[0] << 16 | pixel_topL[1] << 8 | pixel_topL[2];
                             if (tag == 0)
-                                tag = pixel_top[0] << 16 | pixel_top[1] << 8 | pixel_top[2];
-                            else if (tag != (pixel_top[0] << 16 | pixel_top[1] << 8 | pixel_top[2]))
+                                tag = tag_pixel_topL;
+                            else if (tag != tag_pixel_topL)
                             {
-                                colisions.Add((
-                                    Math.Min(tag, (pixel_top[0] << 16) | (pixel_top[1] << 8) | pixel_top[2]),
-                                    Math.Max(tag, (pixel_top[0] << 16) | (pixel_top[1] << 8) | pixel_top[2])
-                                ));
-                                tag = Math.Min(tag, (pixel_top[0] << 16) | (pixel_top[1] << 8) | pixel_top[2]);
-                                dataPtr[0] = (byte)((tag >> 16) & 0xFF);
-                                dataPtr[1] = (byte)((tag >> 8) & 0xFF);
-                                dataPtr[2] = (byte)(tag & 0xFF);
+                                min = Math.Min(tag, tag_pixel_topL);
+                                max = Math.Max(tag, tag_pixel_topL);
 
-                                dataPtr += nChan;
+                                if (!collisions.ContainsKey(max))
+                                {
+                                    collisions.Add(max, min);
+                                }
+
+                                tag = min;
+                                dataPtr0[0] = (byte)((tag >> 16) & 0xFF);
+                                dataPtr0[1] = (byte)((tag >> 8) & 0xFF);
+                                dataPtr0[2] = (byte)(tag & 0xFF);
                                 continue;
                             }
                         }
-                        if (pixel_topL[0] != 0 || pixel_topL[1] != 0 || pixel_topL[2] != 0)
+                        if (pixel_top[0] != 0 || pixel_top[1] != 0 || pixel_top[2] != 0)
                         {
+                            tag_pixel_top = pixel_top[0] << 16 | pixel_top[1] << 8 | pixel_top[2];
                             if (tag == 0)
-                                tag = pixel_topL[0] << 16 | pixel_topL[1] << 8 | pixel_topL[2];
-                            else if (tag != (pixel_topL[0] << 16 | pixel_topL[1] << 8 | pixel_topL[2]))
+                                tag = tag_pixel_top;
+                            else if (tag != tag_pixel_top)
                             {
-                                colisions.Add((
-                                    Math.Min(tag, (pixel_topL[0] << 16) | (pixel_topL[1] << 8) | pixel_topL[2]),
-                                    Math.Max(tag, (pixel_topL[0] << 16) | (pixel_topL[1] << 8) | pixel_topL[2])
-                                ));
-                                tag = Math.Min(tag, (pixel_topL[0] << 16) | (pixel_topL[1] << 8) | pixel_topL[2]);
-                                dataPtr[0] = (byte)((tag >> 16) & 0xFF);
-                                dataPtr[1] = (byte)((tag >> 8) & 0xFF);
-                                dataPtr[2] = (byte)(tag & 0xFF);
-                                dataPtr += nChan;
+                                min = Math.Min(tag, tag_pixel_top);
+                                max = Math.Max(tag, tag_pixel_top);
+
+                                if (!collisions.ContainsKey(max))
+                                {
+                                    collisions.Add(max, min);
+                                }
+
+                                tag = min;
+                                dataPtr0[0] = (byte)((tag >> 16) & 0xFF);
+                                dataPtr0[1] = (byte)((tag >> 8) & 0xFF);
+                                dataPtr0[2] = (byte)(tag & 0xFF);
+
                                 continue;
                             }
                         }
                         if (pixel_topR[0] != 0 || pixel_topR[1] != 0 || pixel_topR[2] != 0)
                         {
+                            tag_pixel_topR = pixel_topR[0] << 16 | pixel_topR[1] << 8 | pixel_topR[2];
                             if (tag == 0)
-                                tag = pixel_topR[0] << 16 | pixel_topR[1] << 8 | pixel_topR[2];
-                            else if (tag != (pixel_topR[0] << 16 | pixel_topR[1] << 8 | pixel_topR[2]))
+                                tag = tag_pixel_topR;
+                            else if (tag != tag_pixel_topR)
                             {
-                                colisions.Add((
-                                        Math.Min(tag, (pixel_topR[0] << 16) | (pixel_topR[1] << 8) | pixel_topR[2]),
-                                        Math.Max(tag, (pixel_topR[0] << 16) | (pixel_topR[1] << 8) | pixel_topR[2])
-                                ));
-                                tag = Math.Min(tag, (pixel_topR[0] << 16) | (pixel_topR[1] << 8) | pixel_topR[2]);
-                                dataPtr[0] = (byte)((tag >> 16) & 0xFF);
-                                dataPtr[1] = (byte)((tag >> 8) & 0xFF);
-                                dataPtr[2] = (byte)(tag & 0xFF);
-                                dataPtr += nChan;
+                                min = Math.Min(tag, tag_pixel_topR);
+                                max = Math.Max(tag, tag_pixel_topR);
+
+                                if (!collisions.ContainsKey(max))
+                                {
+                                    collisions.Add(max, min);
+                                }
+
+                                tag = min;
+                                dataPtr0[0] = (byte)((tag >> 16) & 0xFF);
+                                dataPtr0[1] = (byte)((tag >> 8) & 0xFF);
+                                dataPtr0[2] = (byte)(tag & 0xFF);
                                 continue;
                             }
                         }
-                        dataPtr[0] = (byte)((tag >> 16) & 0xFF);
-                        dataPtr[1] = (byte)((tag >> 8) & 0xFF);
-                        dataPtr[2] = (byte)(tag & 0xFF);
-                        dataPtr += nChan;
+                        dataPtr0[0] = (byte)((tag >> 16) & 0xFF);
+                        dataPtr0[1] = (byte)((tag >> 8) & 0xFF);
+                        dataPtr0[2] = (byte)(tag & 0xFF);
                     }
-                    dataPtr += padding;
                 }
 
-                /*TODO: fix shitty fix for repetetition of collisions that should never happen*/
-                //colisions = colisions.Distinct().ToList();
-
-                for (int i = 0; i < colisions.Count; i++)
+                foreach (int i in collisions.Values.ToList())
                 {
-                    for (int j = 0; j < colisions.Count; j++)
+                    if (collisions.ContainsKey(i))
                     {
-                        if (colisions[j].MinValue == colisions[i].MaxValue)
+                        foreach (int j in collisions.Keys.ToList())
                         {
-                            colisions[j] = (colisions[i].MinValue, colisions[j].MaxValue);
+                            if (collisions[j] == i)
+                            {
+                                collisions[j] = collisions[i];
+                            }
                         }
                     }
                 }
 
-                dataPtr = dataPtrOrg;
-                //TODO: worry about the borders
-                for (y = 1; y < height - 1; y++)
+                dataPtr = (byte*)mo.ImageData.ToPointer();
+                
+                for (y = 0; y < height; y++)
                 {
-                    for (x = 1; x < width - 1; x++)
+                    for (x = 0; x < width; x++)
                     {
-                        if (dataPtr[0] == 0 && dataPtr[1] == 0 && dataPtr[2] == 0)
+                        dataPtr0 = dataPtrAux + (x + 1) * nChan + (y + 1) * widthStep;
+
+                        if (dataPtr0[0] == 0 && dataPtr0[1] == 0 && dataPtr0[2] == 0)
                         {
                             dataPtr += nChan;
                             continue;
                         }
 
-                        tag = (dataPtr[0] << 16) | (dataPtr[1] << 8) | dataPtr[2];
+                        tag = (dataPtr0[0] << 16) | (dataPtr0[1] << 8) | dataPtr0[2];
 
-                        var replaceVal = colisions.FirstOrDefault(c => c.MaxValue == tag);
-                        if (replaceVal != default)
+                        if (collisions.ContainsKey(tag))
                         {
-                            dataPtr[0] = (byte)((replaceVal.MinValue >> 16) & 0xFF); // Red channel
-                            dataPtr[1] = (byte)((replaceVal.MinValue >> 8) & 0xFF);  // Green channel
-                            dataPtr[2] = (byte)(replaceVal.MinValue & 0xFF);         // Blue channel
+                            int replaceVal = collisions[tag];
+                            dataPtr[0] = (byte)((replaceVal >> 16) & 0xFF); // Red channel
+                            dataPtr[1] = (byte)((replaceVal >> 8) & 0xFF);  // Green channel
+                            dataPtr[2] = (byte)(replaceVal & 0xFF);         // Blue channel
+                        }
+                        else
+                        {
+                            dataPtr[0] = (byte)((tag >> 16) & 0xFF);
+                            dataPtr[1] = (byte)((tag >> 8) & 0xFF);
+                            dataPtr[2] = (byte)(tag & 0xFF);
                         }
 
                         dataPtr += nChan;
@@ -2131,24 +2149,34 @@ namespace SS_OpenCV
                 int widthStep = m.WidthStep;
 
                 int x, y;
-                byte* dataPtr = dataPtrOrg;
+                byte* dataPtr;
 
                 int centerX;
                 int centerY;
 
-                int radiosleft;
-                int radiosright;
-                int radiostop;
-                int radiosbottom;
-                double diameter;
+                int[] radius = {0, 0, 0, 0, 0, 0, 0 ,0};
+
+                int maxradius;
+                int minradius;
+
                 int B;
                 int G;
                 int R;
+                int top;
+                int bottom;
+                int left;
+                int right;
+                int diameter;
 
                 foreach (var poss_sings in objects)
                 {
-                    centerX = poss_sings.Value.Right - poss_sings.Value.Left;
-                    centerY = poss_sings.Value.Bottom - poss_sings.Value.Top;
+
+                    top = poss_sings.Value.Top;
+                    bottom = poss_sings.Value.Bottom;
+                    right = poss_sings.Value.Right;
+                    left = poss_sings.Value.Left;
+                    centerX = (right + left)/2;
+                    centerY = (bottom + top)/2;
                     poss_sings.Value.CenterX = centerX;
                     poss_sings.Value.CenterY = centerY;
 
@@ -2156,68 +2184,153 @@ namespace SS_OpenCV
                     G = poss_sings.Key.G;
                     R = poss_sings.Key.R;
 
-                    radiosleft = 0;
-                    radiosright = 0;
-                    radiostop = 0;
-                    radiosbottom = 0;
-                    dataPtr = dataPtrOrg + centerX * nChan + centerY* widthStep;
-                    for (y = centerY; y < poss_sings.Value.Bottom; y++)
-                    {
-                        if (dataPtr[0] == B && dataPtr[1] == G && dataPtr[2] == R)
-                            y = height; //force exit
-                        else
-                        {
-                            dataPtr += widthStep;
-                            radiosbottom++;
-                        }
+
+                    for (int i = 0; i < radius.Length; ++i){
+                        radius[i] = 0;
                     }
 
                     dataPtr = dataPtrOrg + centerX * nChan + centerY * widthStep;
-                    for (y = centerY; y > poss_sings.Value.Top; y--)
+                    for (y = centerY; y > top; y--)
                     {
                         if (dataPtr[0] == B && dataPtr[1] == G && dataPtr[2] == R)
                             y = 0; //force exit
                         else
                         {
-                            dataPtr += widthStep;
-                            radiostop++;
+                             
+
+                            dataPtr -= widthStep;
+                            radius[0]++;
                         }
                     }
 
                     dataPtr = dataPtrOrg + centerX * nChan + centerY * widthStep;
-                    for (x = centerX; x < poss_sings.Value.Right; x++)
+                    for (y = centerY, x = centerX; (y > top && x < right); y--, x++)
+                    {
+                        if (dataPtr[0] == B && dataPtr[1] == G && dataPtr[2] == R)
+                        {
+                            y = 0; //force exit
+                            x = width;
+                        }
+                        else
+                        {
+                            
+
+                            dataPtr += -widthStep + nChan;
+                            radius[1]++;
+                        }
+                    }
+
+                    dataPtr = dataPtrOrg + centerX * nChan + centerY * widthStep;
+                    for (x = centerX; x < right; x++)
                     {
                         if (dataPtr[0] == B && dataPtr[1] == G && dataPtr[2] == R)
                             x = width; //force exit
                         else
                         {
+                            
+
                             dataPtr += nChan;
-                            radiosright++;
+                            radius[2]++;
                         }
                     }
 
                     dataPtr = dataPtrOrg + centerX * nChan + centerY * widthStep;
-                    for (x = centerX; x > poss_sings.Value.Left; x--)
+                    for (y = centerY, x = centerX; y < bottom && x < right; y++, x++)
+                    {
+                        if (dataPtr[0] == B && dataPtr[1] == G && dataPtr[2] == R)
+                        {
+                            y = height; //force exit
+                            x = width;
+                        }
+                        else
+                        {
+                            
+
+                            dataPtr += widthStep + nChan;
+                            radius[3]++;
+                        }
+                    }
+
+                    dataPtr = dataPtrOrg + centerX * nChan + centerY* widthStep;
+                    for (y = centerY; y < bottom; y++)
+                    {
+                        if (dataPtr[0] == B && dataPtr[1] == G && dataPtr[2] == R)
+                            y = height; //force exit
+                        else
+                        {
+                           
+
+                            dataPtr += widthStep;
+                            radius[4]++;
+                        }
+                    }
+
+                    dataPtr = dataPtrOrg + centerX * nChan + centerY * widthStep;
+                    for (y = centerY, x = centerX; (y < bottom && x > left); y++, x--)
+                    {
+                        if (dataPtr[0] == B && dataPtr[1] == G && dataPtr[2] == R)
+                        {
+                            y = height; //force exit
+                            x = 0;
+                        }
+                        else
+                        {
+                            
+
+                            dataPtr += widthStep - nChan;
+                            radius[5]++;
+                        }
+                    }
+
+                    dataPtr = dataPtrOrg + centerX * nChan + centerY * widthStep;
+                    for (x = centerX; x > left; x--)
                     {
                         if (dataPtr[0] == B && dataPtr[1] == G && dataPtr[2] == R)
                             x = 0; //force exit
                         else
                         {
-                            dataPtr += nChan;
-                            radiosleft++;
+                            
+
+                            dataPtr -= nChan;
+                            radius[6]++;
                         }
                     }
 
-                    diameter = (radiosbottom + radiosright + radiosleft + radiostop) / 2;
-                    poss_sings.Value.diamter = diameter;
-                    poss_sings.Value.Circularity = (4 * poss_sings.Value.Area )/(diameter * diameter);
+
+                    dataPtr = dataPtrOrg + centerX * nChan + centerY * widthStep;
+                    for (y = centerY, x = centerX; (y > top && x > left); y--, x--)
+                    {
+                        if (dataPtr[0] == B && dataPtr[1] == G && dataPtr[2] == R)
+                        {
+                            y = 0; //force exit
+                            x = 0;
+                        }
+                        else
+                        {
+                            dataPtr += - widthStep - nChan;
+                            radius[7]++;
+                        }
+                    }
+
+
+                    // Find the maximum and minimum values
+                    maxradius = radius.Max();
+                    minradius = radius.Min();
+                    diameter = (int)radius.Average()*2;
+                    poss_sings.Value.diameter = diameter;
+
+                    // Calculate the variation
+                    if (maxradius != 0)
+                        poss_sings.Value.radiusVariation = (double)((maxradius - minradius) / (double)maxradius) * 100;
+                    else
+                        poss_sings.Value.radiusVariation = 0;
                 }
 
                 //It is not possible to remove items while iterating
                 //so this list was made
                 // Create a list to store keys to remove
                 var keysToRemove = objects
-                    .Where(kvp => kvp.Value.Circularity < 0.05)
+                    .Where(kvp => kvp.Value.radiusVariation > 50 || kvp.Value.diameter <= 20)
                     .Select(kvp => kvp.Key)
                     .ToList();
 
@@ -2357,7 +2470,7 @@ namespace SS_OpenCV
             }
         }
 
-        public static Image<Bgr, byte> FindNum(Image<Bgr, byte> img)
+        public static int FindNum(Image<Bgr, byte> img)
         {
             unsafe
             {
@@ -2388,23 +2501,23 @@ namespace SS_OpenCV
                     width2 = img2.Width;
 
                     img_refactor = img2.Copy();
-                    return img_refactor;
+                   
 
-                    ScaleXY(img_refactor, img, width2/ width_obs, height2/ height_obs);
-                    
+                    // Pass them to the ScaleXY method
+                    ScaleXY(img_refactor, img, (float)((float)img_refactor.Width/ (float)img.Width), (float)((float)img_refactor.Height / (float)img.Height));
+                  
                     ConvertToBW_Otsu(img_refactor);
                     ConvertToBW_Otsu(img2);
 
                     res = CompImg(img_refactor, img2);
 
-                    if (result > res) {
+                    if (res > result) {
                         num = i;
                         result = res;
                     }
                 }
 
-                //return (result<0.5)? -1: num;
-                return null;
+                return (result<0.58)? -1: num;
             }
         }
 
@@ -2436,7 +2549,7 @@ namespace SS_OpenCV
                 int nChanO = mo.NChannels;
                 int x, y;
 
-                if (nChan == 3) return 0; // image in RGB
+                if (nChan != 3) return -1; // image in RGB
 
                 for (y = 0; y < height; y++)
                 {
@@ -2458,31 +2571,33 @@ namespace SS_OpenCV
                     dataPtr2 += padding;
                 }
                 
-                return inter / union;
+                return (float)((float)inter / (float)union);
             }
         }
 
-        public static void ScaleXY(Image<Bgr, byte> imgDestino, Image<Bgr, byte> imgOrigem, float scaleFactorx, float scaleFactory)
+        public static void ScaleXY(Image<Bgr, byte> imgOutput, Image<Bgr, byte> imgInput, float scaleFactorx, float scaleFactory)
         {
             unsafe
             {
                 // direct access to the image memory(sequencial)
                 // direcion top left -> bottom right
 
-                MIplImage m = imgDestino.MIplImage;
-                byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
+                MIplImage mOut = imgOutput.MIplImage;
+                byte* dataPtrOut = (byte*)mOut.ImageData.ToPointer(); // Pointer to the image
 
-                MIplImage Originm = imgOrigem.MIplImage;
-                byte* OrigindataPtr = (byte*)Originm.ImageData.ToPointer(); // Pointer to the image
+                MIplImage mIn = imgInput.MIplImage;
+                byte* dataPtrIn = (byte*)mIn.ImageData.ToPointer(); // Pointer to the image
 
-                int width = imgDestino.Width;
-                int height = imgDestino.Height;
-                int nChan = m.NChannels; // number of channels = 3
-                int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
-                byte* OrigindataPtr_axu;
+                int width = imgOutput.Width;
+                int height = imgOutput.Height;
+                int nChan = mOut.NChannels; // number of channels = 3
+                int padding = mOut.WidthStep - mOut.NChannels * mOut.Width; // alinhament bytes (padding)
+                int widthStepIn = mIn.WidthStep;
+                byte* ptrAux;
                 int x, y;
                 int xOrigin, yOrigin;
-                //double radAngle = (Math.PI / 180) * angle;
+
+                byte Bin, Gin, Rin;
                 if (nChan == 3) // image in RGB
                 {
                     for (y = 0; y < height; y++)
@@ -2491,26 +2606,26 @@ namespace SS_OpenCV
                         {
                             xOrigin = (int)(x / scaleFactorx);
                             yOrigin = (int)(y / scaleFactory);
-                            if ((xOrigin < 0 || yOrigin < 0) || (xOrigin >= width || yOrigin >= height))
+                            if ((xOrigin < 0 || yOrigin < 0) || (xOrigin >= imgInput.Width || yOrigin >= imgInput.Height))
                             {
-                                dataPtr[0] = 0;
-                                dataPtr[1] = 0;
-                                dataPtr[2] = 0;
-                                dataPtr += nChan;
+                                dataPtrOut += nChan;
                                 continue;
                             }
 
-                            OrigindataPtr_axu = OrigindataPtr + (xOrigin * 3 + yOrigin * (width * 3 + padding));
-                            dataPtr[0] = OrigindataPtr_axu[0];
-                            dataPtr[1] = OrigindataPtr_axu[1];
-                            dataPtr[2] = OrigindataPtr_axu[2];
+                            ptrAux = dataPtrIn + xOrigin * nChan + yOrigin * widthStepIn;
+                            Bin = ptrAux[0];
+                            Gin = ptrAux[1];
+                            Rin = ptrAux[2];
+                            dataPtrOut[0] = Bin;
+                            dataPtrOut[1] = Gin;
+                            dataPtrOut[2] = Rin;
 
                             // advance the pointer to the next pixel
-                            dataPtr += nChan;
+                            dataPtrOut += nChan;
                         }
 
                         //at the end of the line advance the pointer by the aligment bytes (padding)
-                        dataPtr += padding;
+                        dataPtrOut += padding;
                     }
                 }
             }
@@ -2559,7 +2674,6 @@ namespace SS_OpenCV
                 Filter4Red(imgCopy, imgHsv);
                 
                 joinedComponents(imgCopy);
-                
 
                 Dictionary<(byte B, byte G, byte R), ObjectParams> objects = removeSmallAreas(imgCopy, 1000);
 
@@ -2593,8 +2707,6 @@ namespace SS_OpenCV
                     filter4Black(croppedImage, croppedimgHsv);
                     
                     joinedComponents(croppedImage);
-                    croppedImage.CopyTo(imgDest.GetSubRect(cropRect));
-                    return;
 
                     Dictionary<(byte B, byte G, byte R), ObjectParams> numbers = removeSmallAreas(croppedImage, 400);
 
@@ -2615,18 +2727,13 @@ namespace SS_OpenCV
                         Image<Bgr, byte> numImg = imgCopy.Copy();
                         imgCopy.ROI = Rectangle.Empty;
 
-                        numImg = FindNum(numImg);
-
-                        cropRect = new Rectangle(leftNum, topNum, numImg.Width, numImg.Height);
+                        FindNum(numImg);
 
                         numImg.CopyTo(imgDest.GetSubRect(cropRect));
-
-                        // Reset the ROI of the original image to avoid affecting further operations
                         
-                        /*
                         sinal.sinalRect = new Rectangle(leftNum, topNum, widthNum, heightNum);
 
-                        imgDest.Draw(sinal.sinalRect, new Bgr(Color.BlueViolet));*/
+                        imgDest.Draw(sinal.sinalRect, new Bgr(Color.BlueViolet));
                     }
 
                     sinal.sinalRect = new Rectangle(tag.Value.Left, tag.Value.Top, tag.Value.Right - tag.Value.Left, tag.Value.Bottom - tag.Value.Top);
