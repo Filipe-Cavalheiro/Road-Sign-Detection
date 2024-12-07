@@ -1984,309 +1984,6 @@ namespace SS_OpenCV
             }
         }
 
-        private static Dictionary<(byte B, byte G, byte R), ObjectParams> removeSmallAreas(Image<Bgr, byte> imgDest, int area)
-        {
-            unsafe
-            {
-                int width = imgDest.Width;
-                int height = imgDest.Height;
-
-                MIplImage m = imgDest.MIplImage;
-                byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
-                int nChan = m.NChannels; // number of channels = 3
-                int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
-
-                Dictionary<(byte, byte, byte), ObjectParams> objects = new Dictionary<(byte, byte, byte), ObjectParams>();
-
-                int x, y;
-                for (y = 0; y < height; y++)
-                {
-                    for (x = 0; x < width; x++)
-                    {
-                        if (dataPtr[0] != 0 || dataPtr[1] != 0 || dataPtr[2] != 0)
-                        {
-                            var colorKey = (dataPtr[0], dataPtr[1], dataPtr[2]);
-
-                            // Update the count in the dictionary
-                            if (objects.ContainsKey(colorKey))
-                            {
-                                objects[colorKey].Area++;
-                            }
-                            else
-                            {
-                                objects[colorKey] = new ObjectParams(dataPtr[0], dataPtr[1], dataPtr[2], 1);
-                            }
-                        }
-                        // advance the pointer to the next pixel
-                        dataPtr += nChan;
-                    }
-
-                    //at the end of the line advance the pointer by the aligment bytes (padding)
-                    dataPtr += padding;
-                }
-
-                var largestEntries = objects
-                    .Where(kvp => kvp.Value.Area < area)
-                    .Select(kvp => kvp.Key)
-                    .ToList();
-
-                // Remove the keys from the dictionary
-                foreach (var key in largestEntries)
-                {
-                    objects.Remove(key);
-                }
-                return objects;
-            }
-        }
-
-        private static Dictionary<(byte B, byte G, byte R), NumbParam> removeSmallAreas_numb(Image<Bgr, byte> imgDest, int area)
-        {
-            unsafe
-            {
-                int width = imgDest.Width;
-                int height = imgDest.Height;
-
-                MIplImage m = imgDest.MIplImage;
-                byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
-                int nChan = m.NChannels; // number of channels = 3
-                int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
-
-                Dictionary<(byte, byte, byte), NumbParam> objects = new Dictionary<(byte, byte, byte), NumbParam>();
-
-                int x, y;
-                for (y = 0; y < height; y++)
-                {
-                    for (x = 0; x < width; x++)
-                    {
-                        if (dataPtr[0] != 0 || dataPtr[1] != 0 || dataPtr[2] != 0)
-                        {
-                            var colorKey = (dataPtr[0], dataPtr[1], dataPtr[2]);
-
-                            // Update the count in the dictionary
-                            if (objects.ContainsKey(colorKey))
-                            {
-                                objects[colorKey].Area++;
-                            }
-                            else
-                            {
-                                objects[colorKey] = new NumbParam(dataPtr[0], dataPtr[1], dataPtr[2], 1);
-                            }
-                        }
-                        // advance the pointer to the next pixel
-                        dataPtr += nChan;
-                    }
-
-                    //at the end of the line advance the pointer by the aligment bytes (padding)
-                    dataPtr += padding;
-                }
-
-                var largestEntries = objects
-                    .Where(kvp => kvp.Value.Area < area)
-                    .Select(kvp => kvp.Key)
-                    .ToList();
-
-                // Remove the keys from the dictionary
-                foreach (var key in largestEntries)
-                {
-                    objects.Remove(key);
-                }
-                return objects;
-            }
-        }
-
-        private static void getcoords(Image<Bgr, byte> imgDest, Dictionary<(byte B, byte G, byte R), ObjectParams> objects)
-        {
-            unsafe
-            {
-                int width = imgDest.Width;
-                int height = imgDest.Height;
-
-                MIplImage m = imgDest.MIplImage;
-                byte* dataPtrOrg = (byte*)m.ImageData.ToPointer();     // Pointer to the image
-                int nChan = m.NChannels;                            // number of channels = 3
-                int padding = m.WidthStep - m.NChannels * m.Width;  // alinhament bytes (padding)
-                int widthStep = m.WidthStep;
-
-                int x, y;
-                (int x, int y)  top = (-1, -1), left = (-1, -1), bottom = (-1, -1), right = (-1, -1);
-                byte* dataPtr = dataPtrOrg;
-
-                foreach (var sing_object in objects)
-                {
-                    dataPtr = dataPtrOrg;
-                    //loop lines first
-                    for (y = 0; y < height; y++)
-                    {
-                        for (x = 0; x < width; x++)
-                        {
-                            if (dataPtr[0] == sing_object.Value.Blue && dataPtr[1] == sing_object.Value.Green && dataPtr[2] == sing_object.Value.Red)
-                            {
-                                top = (x, y);
-                                x = width; //force exit of for loops
-                                y = height;
-                            }
-                            dataPtr += nChan;
-                        }
-                        dataPtr += padding;
-                    }
-
-                    // Loop through columns first
-                    for (x = 0; x < width; x++)
-                    {
-                        dataPtr = dataPtrOrg + x * nChan;
-                        for (y = 0; y < height; y++)
-                        {
-                            if (dataPtr[0] == sing_object.Value.Blue && dataPtr[1] == sing_object.Value.Green && dataPtr[2] == sing_object.Value.Red)
-                            {
-                                left = (x, y);
-                                x = width; //force exit of for loops
-                                y = height;
-                            }
-
-                            dataPtr += widthStep;
-                        }
-                    }
-
-                    dataPtr = dataPtrOrg + height * (width * nChan);
-                    for (y = height; y > 0; y--)
-                    {
-                        for (x = 0; x < width; x++)
-                        {
-                            if (dataPtr[0] == sing_object.Value.Blue && dataPtr[1] == sing_object.Value.Green && dataPtr[2] == sing_object.Value.Red)
-                            {
-                                bottom = (x, y);
-                                x = width; //force exit of for loops
-                                y = 0;
-                            }
-                            dataPtr -= nChan;
-                        }
-                        dataPtr -= padding;
-                    }
-
-                    // Loop through columns first starting at right
-                    for (x = width; x > 0; x--)
-                    {
-                        dataPtr = dataPtrOrg + x * nChan;
-                        for (y = 0; y < height; y++)
-                        {
-                            if (dataPtr[0] == sing_object.Value.Blue && dataPtr[1] == sing_object.Value.Green && dataPtr[2] == sing_object.Value.Red)
-                            {
-                                right = (x, y);
-                                x = 0; //force exit of for loops
-                                y = height;
-                            }
-
-                            dataPtr += width * nChan + padding;
-                        }
-                    }
-                    if (top.y == -1 || left.x == -1 || right.x == -1 || bottom.y == -1)
-                        throw new InvalidOperationException("One or more values are -1, which is not allowed.");
-                    objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Top = top;
-                    objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Bottom = bottom;
-                    objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Right = right;
-                    objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Left = left;
-                    objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Width = right.x - left.x;
-                    objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Height = bottom.y - top.y;
-                }
-            }
-        }
-
-        private static void getcoords_numb(Image<Bgr, byte> imgDest, Dictionary<(byte B, byte G, byte R), NumbParam> objects)
-        {
-            unsafe
-            {
-                int width = imgDest.Width;
-                int height = imgDest.Height;
-
-                MIplImage m = imgDest.MIplImage;
-                byte* dataPtrOrg = (byte*)m.ImageData.ToPointer();     // Pointer to the image
-                int nChan = m.NChannels;                            // number of channels = 3
-                int padding = m.WidthStep - m.NChannels * m.Width;  // alinhament bytes (padding)
-                int widthStep = m.WidthStep;
-
-                int x, y;
-                (int x, int y) top = (-1, -1), left = (-1, -1), bottom = (-1, -1), right = (-1, -1);
-                byte* dataPtr = dataPtrOrg;
-
-                foreach (var sing_object in objects)
-                {
-                    dataPtr = dataPtrOrg;
-                    //loop lines first
-                    for (y = 0; y < height; y++)
-                    {
-                        for (x = 0; x < width; x++)
-                        {
-                            if (dataPtr[0] == sing_object.Value.Blue && dataPtr[1] == sing_object.Value.Green && dataPtr[2] == sing_object.Value.Red)
-                            {
-                                top = (x, y);
-                                x = width; //force exit of for loops
-                                y = height;
-                            }
-                            dataPtr += nChan;
-                        }
-                        dataPtr += padding;
-                    }
-
-                    // Loop through columns first
-                    for (x = 0; x < width; x++)
-                    {
-                        dataPtr = dataPtrOrg + x * nChan;
-                        for (y = 0; y < height; y++)
-                        {
-                            if (dataPtr[0] == sing_object.Value.Blue && dataPtr[1] == sing_object.Value.Green && dataPtr[2] == sing_object.Value.Red)
-                            {
-                                left = (x, y);
-                                x = width; //force exit of for loops
-                                y = height;
-                            }
-
-                            dataPtr += widthStep;
-                        }
-                    }
-
-                    dataPtr = dataPtrOrg + height * (width * nChan);
-                    for (y = height; y > 0; y--)
-                    {
-                        for (x = 0; x < width; x++)
-                        {
-                            if (dataPtr[0] == sing_object.Value.Blue && dataPtr[1] == sing_object.Value.Green && dataPtr[2] == sing_object.Value.Red)
-                            {
-                                bottom = (x, y);
-                                x = width; //force exit of for loops
-                                y = 0;
-                            }
-                            dataPtr -= nChan;
-                        }
-                        dataPtr -= padding;
-                    }
-
-                    // Loop through columns first starting at right
-                    for (x = width; x > 0; x--)
-                    {
-                        dataPtr = dataPtrOrg + x * nChan;
-                        for (y = 0; y < height; y++)
-                        {
-                            if (dataPtr[0] == sing_object.Value.Blue && dataPtr[1] == sing_object.Value.Green && dataPtr[2] == sing_object.Value.Red)
-                            {
-                                right = (x, y);
-                                x = 0; //force exit of for loops
-                                y = height;
-                            }
-
-                            dataPtr += width * nChan + padding;
-                        }
-                    }
-                    if (top.y == -1 || left.x == -1 || right.x == -1 || bottom.y == -1)
-                        throw new InvalidOperationException("One or more values are -1, which is not allowed.");
-                    objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Top = top;
-                    objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Bottom = bottom;
-                    objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Right = right;
-                    objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Left = left;
-                    objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Width = right.x - left.x;
-                    objects[(sing_object.Key.B, sing_object.Key.G, sing_object.Key.R)].Height = bottom.y - top.y;
-                }
-            }
-        }
         private static void calculateCircularity(Image<Bgr, byte> imgDest, Dictionary<(byte B, byte G, byte R), ObjectParams> objects)
         {
             unsafe
@@ -2665,7 +2362,7 @@ namespace SS_OpenCV
                 String cur_path;// = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
                 String[] reference = new string[10];
 
-                cur_path = "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\Imagens\\digitos\\";
+                cur_path = "C:\\Users\\Diogo\\Desktop\\Road-Sign-Detection\\Imagens\\digitos\\";
 
                 for (int i = 0; i < 10; ++i)
                 {
@@ -2877,9 +2574,14 @@ namespace SS_OpenCV
                 
             joinedComponents(imgCopy);
 
-            Dictionary<(byte B, byte G, byte R), ObjectParams> objects = removeSmallAreas(imgCopy, 1000);
+            Dictionary<(byte B, byte G, byte R), ObjectParams> objects = ObjectParams.removeSmallAreas(imgCopy, 1000);
 
-            getcoords(imgCopy, objects);
+            foreach (var i in objects)
+            {
+               i.Value.getCoords(imgCopy, i.Value);
+            }
+
+            //getcoords(imgCopy, objects);
 
             calculateCircularity(imgCopy, objects);
 
@@ -2915,9 +2617,12 @@ namespace SS_OpenCV
                     
                 joinedComponents(croppedImage);
 
-                Dictionary<(byte B, byte G, byte R), NumbParam> numbers = removeSmallAreas_numb(croppedImage, 400);
+                Dictionary<(byte B, byte G, byte R), NumbParam> numbers = NumbParam.removeSmallAreas(croppedImage, 400);
 
-                getcoords_numb(croppedImage, numbers);
+                foreach (var i in numbers)
+                {
+                   i.Value.getCoords(croppedImage, i.Value);
+                }
 
                 numbers = numbers
                                 .Where(kvp => kvp.Value.Height >= kvp.Value.Width)

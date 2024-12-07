@@ -3,33 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Emgu.CV.Structure;
+using Emgu.CV;
 
 namespace SS_OpenCV
 {
-    internal class NumbParam
+    internal class NumbParam : Params
     {
-        // Properties for the object's coordinates
-        public int Blue { get; set; }
-        public int Green { get; set; }
-        public int Red { get; set; }
-        public int Area { get; set; }
-
-        // Optional values
-        public (int x, int y) Top { get; set; }
-        public (int x, int y) Left { get; set; }
-        public (int x, int y) Bottom { get; set; }
-        public (int x, int y) Right { get; set; }
-        public int Width { get; set; }
-        public int Height { get; set; }
-        public double radiusVariation { get; set; }
-        public int CenterX { get; set; }
-        public int CenterY { get; set; }
-        public int diameter { get; set; }
-
-        public int objectType { get; set; }
-
-        public int[] radius { get; set; }
-
         // Constructor to initialize the mandatory values
         public NumbParam(int b, int g, int r, int area)
         {
@@ -45,10 +25,63 @@ namespace SS_OpenCV
             Height = 0;
             CenterX = 0;
             CenterY = 0;
-            radius = new int[] { 0, 0, 0, 0, 0, 0, 0, 0 }; // Initialize with 8 values
             diameter = 0;
-            radiusVariation = 0.0;
             objectType = -1;
+        }
+
+        public static Dictionary<(byte B, byte G, byte R), NumbParam> removeSmallAreas(Image<Bgr, byte> imgDest, int area)
+        {
+            unsafe
+            {
+                int width = imgDest.Width;
+                int height = imgDest.Height;
+
+                MIplImage m = imgDest.MIplImage;
+                byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
+                int nChan = m.NChannels; // number of channels = 3
+                int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
+
+                Dictionary<(byte, byte, byte), NumbParam> objects = new Dictionary<(byte, byte, byte), NumbParam>();
+
+                int x, y;
+                for (y = 0; y < height; y++)
+                {
+                    for (x = 0; x < width; x++)
+                    {
+                        if (dataPtr[0] != 0 || dataPtr[1] != 0 || dataPtr[2] != 0)
+                        {
+                            var colorKey = (dataPtr[0], dataPtr[1], dataPtr[2]);
+
+                            // Update the count in the dictionary
+                            if (objects.ContainsKey(colorKey))
+                            {
+                                objects[colorKey].Area++;
+                            }
+                            else
+                            {
+                                objects[colorKey] = new NumbParam(dataPtr[0], dataPtr[1], dataPtr[2], 1);
+                            }
+                        }
+                        // advance the pointer to the next pixel
+                        dataPtr += nChan;
+                    }
+
+                    //at the end of the line advance the pointer by the aligment bytes (padding)
+                    dataPtr += padding;
+                }
+
+                var largestEntries = objects
+                    .Where(kvp => kvp.Value.Area < area)
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+
+                // Remove the keys from the dictionary
+                foreach (var key in largestEntries)
+                {
+                    objects.Remove(key);
+                }
+                return objects;
+            }
         }
     }
 }
