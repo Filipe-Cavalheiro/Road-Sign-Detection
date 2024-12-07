@@ -26,6 +26,7 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement.ToolBar;
 using System.Security.Cryptography;
 using System.Reflection;
 using System.Runtime.Serialization.Formatters;
+using Emgu.CV.Cuda;
 
 namespace SS_OpenCV
 {
@@ -1763,7 +1764,6 @@ namespace SS_OpenCV
                 byte* dataPtr_hsv = (byte*)m_hsv.ImageData.ToPointer(); // Pointer to the image
                 int nChan_hsv = m_hsv.NChannels; // number of channels = 3
                 int padding_hsv = m_hsv.WidthStep - m_hsv.NChannels * m_hsv.Width; // alinhament bytes (padding)
-
                 int x, y;
                 if (nChan == 3) // image in RGB
                 {
@@ -1771,7 +1771,7 @@ namespace SS_OpenCV
                     {
                         for (x = 0; x < width; x++)
                         {
-                          if (!((dataPtr_hsv[1] > 100 && dataPtr_hsv[0] < 10) || (dataPtr_hsv[0] > 160 && dataPtr_hsv[1] > 100 && dataPtr_hsv[0] < 179)))
+                            if (!((dataPtr_hsv[1] > 100 && dataPtr_hsv[0] < 10) || (dataPtr_hsv[0] > 160 && dataPtr_hsv[1] > 100 && dataPtr_hsv[0] < 179)))
                             {
                                 dataPtr[0] = 0;
                                 dataPtr[1] = 0;
@@ -2291,123 +2291,107 @@ namespace SS_OpenCV
                 byte* dataPtro = (byte*)mo.ImageData.ToPointer(); // Pointer to the image
 
                 MIplImage md = imgDest.MIplImage;
-                byte* dataPtrd = (byte*)md.ImageData.ToPointer();
+                byte* dataPtrDest = (byte*)md.ImageData.ToPointer();
 
-                byte* dataPtraux;
+                byte* dataPtr = dataPtro;
+                double blue, green, red, rc, gc, bc;
+                double Cmax, Cmin;
+                double variation;
+                int huetmp;
 
-                byte blue, green, red, hue, sat, val, del, hconst;
-
-                int width = imgDest.Width;
-                int height = imgDest.Height;
-                int nChan = md.NChannels; // number of channels = 3
-                int padding = md.WidthStep - md.NChannels * md.Width; // alinhament bytes (padding)
-                int widthStepO = mo.WidthStep;
-                int nChanO = mo.NChannels;
+                int width = mo.Width;
+                int height = mo.Height;
+                int nChan = mo.NChannels; // number of channels = 3
+                int padding = mo.WidthStep - mo.NChannels * mo.Width; // alinhament bytes (padding)
+                int widthStep = mo.WidthStep;
                 int x, y;
 
-                if (nChan == 3) return; // image in RGB
+                if (nChan != 3) return; // image in RGB
 
                 for (y = 0; y < height; y++)
                 {
                     for (x = 0; x < width; x++)
                     {
-
-                        dataPtraux = dataPtro + y * widthStepO + x * nChanO;
-
                         // store in the image
-                        blue = dataPtraux[0];
-                        green = dataPtraux[1];
-                        red = dataPtraux[2];
+                        blue = dataPtr[0]/255.0;
+                        green = dataPtr[1] / 255.0;
+                        red = dataPtr[2] / 255.0;
 
-                        if (blue > green && blue > red) {
-                            val = blue;
-                            hconst = (byte) (red - green);
+                        Cmax = Math.Max(blue, Math.Max(green, red));
+                        Cmin = Math.Min(blue, Math.Min(green, red));
+                        variation = Cmax - Cmin;
 
-                            if (green > red) {
-                                del = (byte) (val - red);
-                                sat = (byte) Math.Round((float) del / val);
-                                hue = (byte) (4 + Math.Round((float) hconst / del));
-                            } else {
-                                del = (byte) (val - green);
-                                sat = (byte) Math.Round((float)del / val);
-                                hue = (byte) (4 + Math.Round((float) hconst / del));
+                        huetmp = 0;
+                        
+                        if (variation != 0)
+                        {
+                            if (Cmax == blue)
+                            {
+                                huetmp = (int)Math.Round(60 * ((red - green) / variation + 4));
                             }
-                        } else if (green > blue && green > red) {
-                            val = green;
-                            hconst = (byte) (blue - red);
-
-                            if (blue > red) {
-                                del = (byte) (val - red);
-                                sat = (byte) Math.Round((float) del / val);
-                                hue = (byte) (2 + Math.Round((float) hconst / del));
+                            else if (Cmax == green)
+                            {
+                                huetmp = (int)Math.Round(60 * ((blue - red) / variation + 2));
                             }
-                            else {
-                                del = (byte) (val - blue);
-                                sat = (byte) Math.Round((float) del / val);
-                                hue = (byte) (2 + Math.Round((float) hconst / del));
-                            }
-                        } else {
-                            val = red;
-                            hconst = (byte) (green - blue);
-
-                            if (blue > green) {
-                                del = (byte) (val - green);
-                                sat = (byte) Math.Round((float) del / val);
-                                hue = (byte) Math.Round((float) hconst / del);
-                            }
-                            else {
-                                del = (byte) (val - blue);
-                                sat = (byte) Math.Round((float) del / val);
-                                hue = (byte) Math.Round((float) hconst / del);
+                            else
+                            {
+                                huetmp = (int)Math.Round(60 * (((green - blue) / variation)));
                             }
                         }
 
-                        dataPtrd[0] = hue;
-                        dataPtrd[1] = sat;
-                        dataPtrd[2] = val;
+                        if (huetmp < 0) huetmp += 360;
+
+                        dataPtrDest[0] = (byte)Math.Round((huetmp / 360.0) * 180);
+                        dataPtrDest[1] = (byte)Math.Round((Cmax == 0) ? 0 : ((variation / Cmax) * 255));
+                        dataPtrDest[2] = (byte)Math.Round(Cmax * 255);
 
                         // advance the pointer to the next pixel
-                        dataPtrd += nChan;
+                        dataPtrDest += nChan;
+                        dataPtr += nChan;
                     }
 
                     //at the end of the line advance the pointer by the aligment bytes (padding)
-                    dataPtrd += padding;
+                    dataPtrDest += padding;
+                    dataPtr += padding;
                 }
             }
         }
 
-        public static int FindNum(Image<Bgr, byte> img)
+        public static Image<Bgr, byte> FindNum(Image<Bgr, byte> img)
         {
             unsafe
             {
-                String cur_path = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
-                Console.WriteLine(cur_path);
+                String cur_path;// = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
                 String[] reference = new string[10];
+
+                cur_path = "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\Imagens\\digitos\\";
 
                 for (int i = 0; i < 10; ++i)
                 {
-                    reference[i] = cur_path;
+                    reference[i] = cur_path + i + ".png";
                 }
 
                 Image<Bgr, byte> img2, img_refactor;
 
-                int height1, height2, width1, width2, num;
+                int height2, width2, num;
                 float result, res;
 
                 num = 0;
                 result = 0;
-
+                int width_obs = img.Width;
+                int height_obs = img.Height;
                 for (int i = 0; i < 10; ++i)
                 {
                     img2 = new Image<Bgr, byte>(reference[i]);
-                    height1 = img.Height;
+                    
                     height2 = img2.Height;
-                    width1 = img.Width;
                     width2 = img2.Width;
 
                     img_refactor = img2.Copy();
+                    return img_refactor;
 
-                    Scale(img_refactor, img, (height1 - height2)/(width1 - width2));
+                    ScaleXY(img_refactor, img, width2/ width_obs, height2/ height_obs);
+                    
                     ConvertToBW_Otsu(img_refactor);
                     ConvertToBW_Otsu(img2);
 
@@ -2419,7 +2403,8 @@ namespace SS_OpenCV
                     }
                 }
 
-                return num;
+                //return (result<0.5)? -1: num;
+                return null;
             }
         }
 
@@ -2460,15 +2445,8 @@ namespace SS_OpenCV
 
                         d1 = dataPtr1[0] == 0;
                         d2 = dataPtr2[0] == 0;
-
-                        if (d1) {
-                            ++union;
-                            if (d2) {
-                                ++inter;
-                            }
-                        } else if (d2) {
-                            ++union;
-                        }
+                        union += Convert.ToInt32(d1 || d2);
+                        inter += Convert.ToInt32(d1 && d2);
 
                         // advance the pointer to the next pixel
                         dataPtr1 += nChan;
@@ -2481,6 +2459,60 @@ namespace SS_OpenCV
                 }
                 
                 return inter / union;
+            }
+        }
+
+        public static void ScaleXY(Image<Bgr, byte> imgDestino, Image<Bgr, byte> imgOrigem, float scaleFactorx, float scaleFactory)
+        {
+            unsafe
+            {
+                // direct access to the image memory(sequencial)
+                // direcion top left -> bottom right
+
+                MIplImage m = imgDestino.MIplImage;
+                byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
+
+                MIplImage Originm = imgOrigem.MIplImage;
+                byte* OrigindataPtr = (byte*)Originm.ImageData.ToPointer(); // Pointer to the image
+
+                int width = imgDestino.Width;
+                int height = imgDestino.Height;
+                int nChan = m.NChannels; // number of channels = 3
+                int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
+                byte* OrigindataPtr_axu;
+                int x, y;
+                int xOrigin, yOrigin;
+                //double radAngle = (Math.PI / 180) * angle;
+                if (nChan == 3) // image in RGB
+                {
+                    for (y = 0; y < height; y++)
+                    {
+                        for (x = 0; x < width; x++)
+                        {
+                            xOrigin = (int)(x / scaleFactorx);
+                            yOrigin = (int)(y / scaleFactory);
+                            if ((xOrigin < 0 || yOrigin < 0) || (xOrigin >= width || yOrigin >= height))
+                            {
+                                dataPtr[0] = 0;
+                                dataPtr[1] = 0;
+                                dataPtr[2] = 0;
+                                dataPtr += nChan;
+                                continue;
+                            }
+
+                            OrigindataPtr_axu = OrigindataPtr + (xOrigin * 3 + yOrigin * (width * 3 + padding));
+                            dataPtr[0] = OrigindataPtr_axu[0];
+                            dataPtr[1] = OrigindataPtr_axu[1];
+                            dataPtr[2] = OrigindataPtr_axu[2];
+
+                            // advance the pointer to the next pixel
+                            dataPtr += nChan;
+                        }
+
+                        //at the end of the line advance the pointer by the aligment bytes (padding)
+                        dataPtr += padding;
+                    }
+                }
             }
         }
 
@@ -2523,10 +2555,11 @@ namespace SS_OpenCV
                 // Convert the image from BGR to HSV color space
                 Image<Hsv, byte> imgHsv = new Image<Hsv, byte>(width, height);
                 ConvertToHsv(imgOrig, imgHsv);
-
+                
                 Filter4Red(imgCopy, imgHsv);
-
+                
                 joinedComponents(imgCopy);
+                
 
                 Dictionary<(byte B, byte G, byte R), ObjectParams> objects = removeSmallAreas(imgCopy, 1000);
 
@@ -2555,32 +2588,47 @@ namespace SS_OpenCV
                     imgCopy.ROI = Rectangle.Empty;
 
                     Image<Hsv, byte> croppedimgHsv = new Image<Hsv, byte>(croppedImage.Width, croppedImage.Height);
-                    CvInvoke.CvtColor(croppedImage, croppedimgHsv, ColorConversion.Bgr2Hsv);
+                    ConvertToHsv(croppedImage, croppedimgHsv);
 
                     filter4Black(croppedImage, croppedimgHsv);
-
+                    
                     joinedComponents(croppedImage);
+                    croppedImage.CopyTo(imgDest.GetSubRect(cropRect));
+                    return;
 
                     Dictionary<(byte B, byte G, byte R), ObjectParams> numbers = removeSmallAreas(croppedImage, 400);
 
                     getcoords(croppedImage, numbers);
-
-                    // Place the cropped and modified region back in its original location
-                    croppedImage.CopyTo(imgDest.GetSubRect(cropRect));
-
+                    
                     foreach (var number in numbers)
                     {
-                        sinal.sinalRect = new Rectangle(left + number.Value.Left, top + number.Value.Top, number.Value.Right - number.Value.Left,number.Value.Bottom - number.Value.Top);
+                        int leftNum = left + number.Value.Left;
+                        int topNum = top + number.Value.Top;
+                        int widthNum = number.Value.Right - number.Value.Left;
+                        int heightNum = number.Value.Bottom - number.Value.Top;
+
                         // Define the cropping rectangle based on the desired coordinates
-                        cropRect = new Rectangle(left, top, right - left, bottom - top);
+                        cropRect = new Rectangle(leftNum, topNum, widthNum, heightNum);
 
                         // Set the ROI (Region of Interest) of the original image to the crop rectangle
                         imgCopy.ROI = cropRect;
-
-                        // Create a new image to store the cropped region
                         Image<Bgr, byte> numImg = imgCopy.Copy();
+                        imgCopy.ROI = Rectangle.Empty;
+
+                        numImg = FindNum(numImg);
+
+                        cropRect = new Rectangle(leftNum, topNum, numImg.Width, numImg.Height);
+
+                        numImg.CopyTo(imgDest.GetSubRect(cropRect));
+
+                        // Reset the ROI of the original image to avoid affecting further operations
+                        
+                        /*
+                        sinal.sinalRect = new Rectangle(leftNum, topNum, widthNum, heightNum);
+
+                        imgDest.Draw(sinal.sinalRect, new Bgr(Color.BlueViolet));*/
                     }
-                    
+
                     sinal.sinalRect = new Rectangle(tag.Value.Left, tag.Value.Top, tag.Value.Right - tag.Value.Left, tag.Value.Bottom - tag.Value.Top);
 
                     imgDest.Draw(sinal.sinalRect, new Bgr(Color.Green));
