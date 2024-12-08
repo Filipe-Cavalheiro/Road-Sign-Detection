@@ -2361,7 +2361,7 @@ namespace SS_OpenCV
                 String cur_path;// = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
                 String[] reference = new string[10];
 
-                cur_path = "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Road-Sign-Detection\\Imagens\\digitos\\";
+                cur_path = "C:\\Users\\Diogo\\Desktop\\Road-Sign-Detection\\Imagens\\digitos\\";
 
                 for (int i = 0; i < 10; ++i)
                 {
