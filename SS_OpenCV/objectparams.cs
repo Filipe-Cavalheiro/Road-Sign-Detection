@@ -25,7 +25,6 @@ namespace SS_OpenCV
         public int Height { get; set; }
         public int CenterX { get; set; }
         public int CenterY { get; set; }
-        public int diameter { get; set; }
         public int objectType { get; set; }
 
         public void getCoords(Image<Bgr, byte> imgDest, Params obj)
@@ -130,9 +129,12 @@ namespace SS_OpenCV
         public double radiusVariation { get; set; } 
         public int CenterX { get; set; } 
         public int CenterY { get; set; }
-        public int diameter { get; set; }
+        public int innerDiameter { get; set; }
 
         public int[] radius { get; set; }
+        public int FilledArea { get; set; }
+        public float Circularity { get; set; }
+        public float Triangularity { get; set; }
         public List<NumbParam> numbers { get; set; }
 
         // Constructor to initialize the mandatory values
@@ -146,15 +148,18 @@ namespace SS_OpenCV
             Left = (0, 0);
             Bottom = (0, 0);
             Right = (0, 0);
-            Width = 0; 
-            Height = 0;
-            CenterX = 0;
-            CenterY = 0;
-            radius = new int[] { 0, 0, 0, 0, 0, 0, 0, 0 }; // Initialize with 8 values
-            diameter = 0;
+            Width = -1; 
+            Height = -1;
+            CenterX = -1;
+            CenterY = -1;
+            radius = new int[] { 0, 0, 0, 0, 0, 0, 0, 0 };
+            innerDiameter = -1;
             radiusVariation = 0.0;
             objectType = -1;
             numbers = new List<NumbParam>();
+            FilledArea = -1;
+            Circularity = -1;
+            Triangularity = -1;
         }
 
         public static Dictionary<(byte B, byte G, byte R), ObjectParams> removeSmallAreas(Image<Bgr, byte> imgDest, int area)
@@ -217,17 +222,24 @@ namespace SS_OpenCV
         {
             int maxTopY;
             int minTopY;
+            int maxheight;
+            int minheight;
 
             foreach (var sign_object in objects)
             {
-                if (sign_object.Value.radiusVariation < 50 && sign_object.Value.diameter > 20)
+                //cicles
+                if ((0.9 < sign_object.Value.Circularity && sign_object.Value.Circularity < 1.2) || (sign_object.Value.radiusVariation < 50 && sign_object.Value.innerDiameter > 20))
                 {
-                    if (sign_object.Value.numbers.Capacity != 0)
-                        sign_object.Value.objectType = 10;
-                    else
-                        sign_object.Value.objectType = 13;
+                    sign_object.Value.objectType = 13;
+                    if (sign_object.Value.numbers.Count != 0) {
+                        maxheight = sign_object.Value.numbers.Max(x => x.Height);
+                        minheight = sign_object.Value.numbers.Min(x => x.Height);
+                        if ((double)((maxheight - minheight) / (double)maxheight) * 100 < 20)
+                            sign_object.Value.objectType = 10;
+                    }
                 }
-                else if (sign_object.Value.radiusVariation < 80 && sign_object.Value.diameter > 20)
+                //triangles
+                else if (0.9 < sign_object.Value.Triangularity && sign_object.Value.Triangularity < 3)
                 {
                     maxTopY = Math.Max(sign_object.Value.Top.y, Math.Max(sign_object.Value.Left.y, sign_object.Value.Right.y));
                     minTopY = Math.Min(sign_object.Value.Top.y, Math.Min(sign_object.Value.Left.y, sign_object.Value.Right.y));

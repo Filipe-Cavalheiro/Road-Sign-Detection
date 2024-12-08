@@ -25,7 +25,6 @@ namespace SS_OpenCV
             Height = 0;
             CenterX = 0;
             CenterY = 0;
-            diameter = 0;
             objectType = -1;
         }
 
