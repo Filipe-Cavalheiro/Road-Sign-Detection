@@ -1847,7 +1847,7 @@ namespace SS_OpenCV
                             dataPtr0[0] = (byte)((currentTag >> 16) & 0xFF);
                             dataPtr0[1] = (byte)((currentTag >> 8) & 0xFF);
                             dataPtr0[2] = (byte)(currentTag & 0xFF);
-                            currentTag += 1;
+                            ++currentTag;
 
                             continue;
                         }
@@ -2518,8 +2518,8 @@ namespace SS_OpenCV
                 int widthStep = m.WidthStep;
                 int x, y;
                 bool inside = false;
-                int count = 0;
                 bool atTag;
+                int start = 0, end = 0;
                 bool reset = false;
                 int filledArea = 0;
 
@@ -2534,25 +2534,27 @@ namespace SS_OpenCV
                         for (x = 0; x < width; x++)
                         {
                             atTag = (dataPtr[0] == sign.Value.Blue && dataPtr[1] == sign.Value.Green && dataPtr[2] == sign.Value.Red);
-                            if (atTag && !inside && count == 0)
+                            if (!atTag && inside && start == 0)
                             {
-                                inside = !inside;
-                                dataPtr[0] = 255;
+                                start = x;
                             }
-                            else if(atTag && inside && count != 0 && !reset)
+                            else if (atTag && !inside && start == 0)
+                            {
+                                inside = !inside;   
+                            }
+                            else if (atTag && inside && start != 0 && !reset)
                             {
                                 reset = true;
+                                end = x;
                             }
-                            else if (!atTag && inside && count != 0 && reset)
+                            else if (!atTag && start != 0 && reset)
                             {
                                 reset = false;
-                                filledArea += count;
-                                count = 1;
+                                filledArea += (end - start);
+                                start = 0;
+                                end = 0;
                             }
-                            else if (!atTag && inside)
-                            {
-                                count++;
-                            }
+ 
 
                             // advance the pointer to the next pixel
                             dataPtr += nChan;
@@ -2563,15 +2565,17 @@ namespace SS_OpenCV
                         if (inside && !atTag)
                         {
                             inside = false;
-                            count = 0;
                             reset = false;
+                            start = 0;
+                            end = 0;
                         }
                         else if (inside && atTag)
                         {
+                            filledArea += (end - start);
                             reset = false;
-                            filledArea += count;
-                            inside = !inside;
-                            count = 0;
+                            inside = false;
+                            start = 0;
+                            end = 0;
                         }
                     }
                     sign.Value.FilledArea = filledArea + sign.Value.Area;
@@ -2598,6 +2602,10 @@ namespace SS_OpenCV
             foreach (var sign in objects)
             {
                 sign.Value.getCoords(imgCopy, sign.Value);
+
+                var rect = new Rectangle(sign.Value.Left.x, sign.Value.Top.y, sign.Value.Right.x - sign.Value.Left.x, sign.Value.Bottom.y - sign.Value.Top.y);
+
+                imgOrig.Draw(rect, new Bgr(Color.Green));
             }
 
             getFilledArea(imgCopy, objects);
@@ -2714,8 +2722,7 @@ namespace SS_OpenCV
             sinalResult = new Results();
 
             Dictionary<(byte B, byte G, byte R), ObjectParams> objects = ObjectFinder(imgOrig, 1000, 270, offsetRatio);
-            imgOrig.CopyTo(imgDest);
-            
+
              foreach (var sing_object in objects)
              {
                  Sinal sinal = new Sinal();
@@ -2744,7 +2751,7 @@ namespace SS_OpenCV
                      numberText = number.objectType.ToString();
 
                      Digito digito = new Digito();
-                     digito.digitoRect = new Rectangle(leftNum, topNum, widthNum, heightNum);
+                     digito.digitoRect = new Rectangle(leftNum, topNum, heightNum, heightNum);
                      digito.digito = numberText;
                      sinal.digitos.Add(digito);
 

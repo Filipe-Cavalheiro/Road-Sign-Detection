@@ -625,11 +625,15 @@ namespace SS_OpenCV
 
             String[] ls = s.Split(';');
 
-            Console.WriteLine(ls[0]);
-            T = Convert.ToDouble(ls[0]);
+            if (ls.Count() != 2) return;
 
-            L = 285 - (int)Math.Round(Convert.ToDouble(ls[1]));
-            Console.WriteLine(ls[1]);
+            L = (int)Math.Round(Convert.ToDouble(ls[0]));
+
+            L = (int)Math.Round((L - 5) / 40.61);
+
+            T = Convert.ToDouble(ls[1]);
+
+            T = (T - 20) / (13 + 1 / 3);
 
             ImageClass.BrightContrast(imgSen, L, T);
             ImageViewer.Image = imgSen;
