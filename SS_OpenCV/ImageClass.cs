@@ -1812,7 +1812,7 @@ namespace SS_OpenCV
                 byte* dataPtr = (byte*)mo.ImageData.ToPointer();
                 byte* dataPtrAux = (byte*)m.ImageData.ToPointer();
                 byte* dataPtr0;
-                int currentTag = 100;
+                int currentTag = 1;
                 int tag_pixel_topL, tag_pixel_top, tag_pixel_topR;
                 int tag, min, max;
                 int x, y;
@@ -1847,7 +1847,7 @@ namespace SS_OpenCV
                             dataPtr0[0] = (byte)((currentTag >> 16) & 0xFF);
                             dataPtr0[1] = (byte)((currentTag >> 8) & 0xFF);
                             dataPtr0[2] = (byte)(currentTag & 0xFF);
-                            currentTag += 100;
+                            currentTag += 1;
 
                             continue;
                         }
@@ -2059,10 +2059,9 @@ namespace SS_OpenCV
                         }
                         else
                         {
-                            
-
                             dataPtr += -widthStep + nChan;
                             radius[1]++;
+
                         }
                     }
 
@@ -2073,8 +2072,6 @@ namespace SS_OpenCV
                             x = width; //force exit
                         else
                         {
-                            
-
                             dataPtr += nChan;
                             radius[2]++;
                         }
@@ -2090,8 +2087,6 @@ namespace SS_OpenCV
                         }
                         else
                         {
-                            
-
                             dataPtr += widthStep + nChan;
                             radius[3]++;
                         }
@@ -2104,8 +2099,6 @@ namespace SS_OpenCV
                             y = height; //force exit
                         else
                         {
-                           
-
                             dataPtr += widthStep;
                             radius[4]++;
                         }
@@ -2121,8 +2114,6 @@ namespace SS_OpenCV
                         }
                         else
                         {
-                            
-
                             dataPtr += widthStep - nChan;
                             radius[5]++;
                         }
@@ -2135,8 +2126,6 @@ namespace SS_OpenCV
                             x = 0; //force exit
                         else
                         {
-                            
-
                             dataPtr -= nChan;
                             radius[6]++;
                         }
@@ -2361,7 +2350,7 @@ namespace SS_OpenCV
                 String cur_path;// = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
                 String[] reference = new string[10];
 
-                cur_path = "C:\\Users\\Diogo\\Desktop\\Road-Sign-Detection\\Imagens\\digitos\\";
+                cur_path = "C:\\Users\\caval\\Documents\\Universidade\\7_Semestre\\SS\\Trab1\\Road-Sign-Detection\\Imagens\\digitos\\";
 
                 for (int i = 0; i < 10; ++i)
                 {
@@ -2549,8 +2538,6 @@ namespace SS_OpenCV
                             {
                                 inside = !inside;
                                 dataPtr[0] = 255;
-                                dataPtr[1] = 0;
-                                dataPtr[2] = 255;
                             }
                             else if(atTag && inside && count != 0 && !reset)
                             {
@@ -2561,16 +2548,10 @@ namespace SS_OpenCV
                                 reset = false;
                                 filledArea += count;
                                 count = 1;
-                                dataPtr[0] = 255;
-                                dataPtr[1] = 0;
-                                dataPtr[2] = 0;
                             }
                             else if (!atTag && inside)
                             {
                                 count++;
-                                dataPtr[0] = 0;
-                                dataPtr[1] = 255;
-                                dataPtr[2] = 255;
                             }
 
                             // advance the pointer to the next pixel
@@ -2584,9 +2565,6 @@ namespace SS_OpenCV
                             inside = false;
                             count = 0;
                             reset = false;
-                            dataPtr[0] = 0;
-                            dataPtr[1] = 255;
-                            dataPtr[2] = 0;
                         }
                         else if (inside && atTag)
                         {
@@ -2594,9 +2572,6 @@ namespace SS_OpenCV
                             filledArea += count;
                             inside = !inside;
                             count = 0;
-                            dataPtr[0] = 255;
-                            dataPtr[1] = 0;
-                            dataPtr[2] = 0;
                         }
                     }
                     sign.Value.FilledArea = filledArea + sign.Value.Area;
@@ -2626,7 +2601,7 @@ namespace SS_OpenCV
             }
 
             getFilledArea(imgCopy, objects);
-            
+
             calculateCircularity(imgCopy, objects);
 
             imgCopy = imgOrig.Copy();
@@ -2657,19 +2632,19 @@ namespace SS_OpenCV
                 filter4Black(croppedImage, croppedimgHsv);
 
                 joinedComponents(croppedImage);
-
+                
                 Dictionary<(byte B, byte G, byte R), NumbParam> numbers = NumbParam.removeSmallAreas(croppedImage, minNumberArea);
-
+                
                 foreach (var num in numbers)
                 {
                     num.Value.getCoords(croppedImage, num.Value);
                 }
-
+                
                 //remove numbers where the width is bigger than the height
                 numbers = numbers
                                 .Where(kvp => kvp.Value.Height >= kvp.Value.Width)
                                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
+                
                 foreach (var number in numbers)
                 {
                     leftNum = left + number.Value.Left.x;
@@ -2684,7 +2659,6 @@ namespace SS_OpenCV
 
                     number.Value.objectType = FindNum(numImg);
                 }
-
                 //remove "numbers" that where not identified as any specific number
                 numbers = numbers
                                 .Where(kvp => kvp.Value.objectType != -1)
@@ -2695,7 +2669,6 @@ namespace SS_OpenCV
                     tag.Value.numbers.Add(number.Value);
                 }
             }
-
             ObjectParams.identifyObjects(objects);
 
             //remove "objects" that where not identified as any specific signal
@@ -2718,14 +2691,13 @@ namespace SS_OpenCV
             return objects;
         }
 
-
-        /// <summary>
-        /// Sinal Reader
-        /// </summary>
-        /// <param name="imgDest">imagem de destino (cópia da original)</param>
-        /// <param name="imgOrig">imagem original </param>
-        /// <param name="level">nivel de dificuldade da imagem</param>
-        /// <param name="sinalResult">Objecto resultado - lista de sinais e respectivas informaçoes</param>
+            /// <summary>
+            /// Sinal Reader
+            /// </summary>
+            /// <param name="imgDest">imagem de destino (cópia da original)</param>
+            /// <param name="imgOrig">imagem original </param>
+            /// <param name="level">nivel de dificuldade da imagem</param>
+            /// <param name="sinalResult">Objecto resultado - lista de sinais e respectivas informaçoes</param>
         public static void SinalReader(Image<Bgr, byte> imgDest, Image<Bgr, byte> imgOrig, int level, out Results sinalResult){
             int width = imgOrig.Width;
             int height = imgOrig.Height;
@@ -2742,77 +2714,77 @@ namespace SS_OpenCV
             sinalResult = new Results();
 
             Dictionary<(byte B, byte G, byte R), ObjectParams> objects = ObjectFinder(imgOrig, 1000, 270, offsetRatio);
-           
+            imgOrig.CopyTo(imgDest);
             
-            foreach (var sing_object in objects)
-            {
-                Sinal sinal = new Sinal();
+             foreach (var sing_object in objects)
+             {
+                 Sinal sinal = new Sinal();
 
-                left = sing_object.Value.Left.x;
-                top = sing_object.Value.Top.y;
-                widthObj = sing_object.Value.Width;
-                heightObj = sing_object.Value.Height;
+                 left = sing_object.Value.Left.x;
+                 top = sing_object.Value.Top.y;
+                 widthObj = sing_object.Value.Width;
+                 heightObj = sing_object.Value.Height;
 
-                yoffset = (int)(heightObj * 0.25);
+                 yoffset = (int)(heightObj * 0.25);
 
-                if (sing_object.Value.objectType == 10)
-                    sinal.sinalEnum = ResultsEnum.sinal_limite_velocidade;
-                else if (sing_object.Value.objectType == 11 || sing_object.Value.objectType == 12)
-                    sinal.sinalEnum = ResultsEnum.sinal_perigo;
-                else if (sing_object.Value.objectType == 13)
-                    sinal.sinalEnum = ResultsEnum.sinal_proibicao;
+                 if (sing_object.Value.objectType == 10)
+                     sinal.sinalEnum = ResultsEnum.sinal_limite_velocidade;
+                 else if (sing_object.Value.objectType == 11 || sing_object.Value.objectType == 12)
+                     sinal.sinalEnum = ResultsEnum.sinal_perigo;
+                 else if (sing_object.Value.objectType == 13)
+                     sinal.sinalEnum = ResultsEnum.sinal_proibicao;
 
-                foreach (var number in sing_object.Value.numbers)
-                {
-                    leftNum = left + number.Left.x;
-                    topNum = top + yoffset + number.Top.y;
-                    widthNum = number.Width;
-                    heightNum = number.Height;
+                 foreach (var number in sing_object.Value.numbers)
+                 {
+                     leftNum = left + number.Left.x;
+                     topNum = top + yoffset + number.Top.y;
+                     widthNum = number.Width;
+                     heightNum = number.Height;
 
-                    numberText = number.objectType.ToString();
+                     numberText = number.objectType.ToString();
 
-                    Digito digito = new Digito();
-                    digito.digitoRect = new Rectangle(leftNum, topNum, widthNum, heightNum);
-                    digito.digito = numberText;
-                    sinal.digitos.Add(digito);
+                     Digito digito = new Digito();
+                     digito.digitoRect = new Rectangle(leftNum, topNum, widthNum, heightNum);
+                     digito.digito = numberText;
+                     sinal.digitos.Add(digito);
 
-                    // Adjust the position to center the text
-                    textPosition = new Point(leftNum + widthNum / 2, topNum + heightNum / 2);
+                     // Adjust the position to center the text
+                     textPosition = new Point(leftNum + widthNum / 2, topNum + heightNum / 2);
 
-                    // Draw the number on the image
-                    CvInvoke.PutText(
-                        imgDest,                         // Image to draw on
-                        numberText,                      // Text to draw
-                        textPosition,                    // Position of the text
-                        FontFace.HersheySimplex,         // Font type
-                        fontScale,                       // Font scale
-                        new MCvScalar(255, 0, 0),    // Text color (white)
-                        thickness                        // Thickness of the text
-                    );
+                     // Draw the number on the image
+                     CvInvoke.PutText(
+                         imgDest,                         // Image to draw on
+                         numberText,                      // Text to draw
+                         textPosition,                    // Position of the text
+                         FontFace.HersheySimplex,         // Font type
+                         fontScale,                       // Font scale
+                         new MCvScalar(255, 0, 0),    // Text color (white)
+                         thickness                        // Thickness of the text
+                     );
 
-                    imgDest.Draw(digito.digitoRect, new Bgr(Color.BlueViolet));
-                }
+                     imgDest.Draw(digito.digitoRect, new Bgr(Color.BlueViolet));
+                 }
 
-                sinal.sinalRect = new Rectangle(left, top, widthObj, heightObj);
-                sinalResult.results.Add(sinal);
+                 sinal.sinalRect = new Rectangle(left, top, widthObj, heightObj);
+                 sinalResult.results.Add(sinal);
 
-                numberText = sing_object.Value.objectType.ToString();
-                // Adjust the position to center the text
-                textPosition = new Point(left + widthObj / 2, top + heightObj / 3);
+                 numberText = sing_object.Value.objectType.ToString();
+                 // Adjust the position to center the text
+                 textPosition = new Point(left + widthObj / 2, top + heightObj / 3);
 
-                // Draw the number on the image
-                CvInvoke.PutText(
-                    imgDest,                         // Image to draw on
-                    numberText,                      // Text to draw
-                    textPosition,                    // Position of the text
-                    FontFace.HersheySimplex,         // Font type
-                    fontScale,                       // Font scale
-                    new MCvScalar(0, 255, 0),          // Text color (white)
-                    thickness                        // Thickness of the text
-                );
+                 // Draw the number on the image
+                 CvInvoke.PutText(
+                     imgDest,                         // Image to draw on
+                     numberText,                      // Text to draw
+                     textPosition,                    // Position of the text
+                     FontFace.HersheySimplex,         // Font type
+                     fontScale,                       // Font scale
+                     new MCvScalar(0, 255, 0),          // Text color (white)
+                     thickness                        // Thickness of the text
+                 );
 
-                imgDest.Draw(sinal.sinalRect, new Bgr(Color.Green));
-            }
+                 imgDest.Draw(sinal.sinalRect, new Bgr(Color.Green));
+             }
         }
     }
 }

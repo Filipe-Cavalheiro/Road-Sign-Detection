@@ -239,7 +239,7 @@ namespace SS_OpenCV
                     }
                 }
                 //triangles
-                else if (0.9 < sign_object.Value.Triangularity && sign_object.Value.Triangularity < 3)
+                else if (0.9 < sign_object.Value.Triangularity && sign_object.Value.Triangularity < 2.5)
                 {
                     maxTopY = Math.Max(sign_object.Value.Top.y, Math.Max(sign_object.Value.Left.y, sign_object.Value.Right.y));
                     minTopY = Math.Min(sign_object.Value.Top.y, Math.Min(sign_object.Value.Left.y, sign_object.Value.Right.y));
